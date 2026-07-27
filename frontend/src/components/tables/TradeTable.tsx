@@ -5,7 +5,13 @@ import { getTrades } from "../../api/endpoints";
 const PAGE = 25;
 const money = (x: number | null) => (x == null ? "—" : x.toFixed(2));
 const pct = (x: number | null) => (x == null ? "—" : `${(x * 100).toFixed(2)}%`);
-const dt = (ts: string | null) => (ts ? ts.slice(0, 10) : "—");
+// Show the intraday time too; keep it to just the date for daily bars (00:00).
+const dt = (ts: string | null) => {
+  if (!ts) return "—";
+  const date = ts.slice(0, 10);
+  const time = ts.slice(11, 16); // HH:MM
+  return time && time !== "00:00" ? `${date} ${time}` : date;
+};
 
 interface Props {
   runId: string;
