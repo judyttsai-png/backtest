@@ -67,15 +67,19 @@ def ingest_symbol(
 
     # Dedup key normalised to naive-UTC: SQLite returns naive datetimes while the
     # provider frame is tz-aware UTC, so a raw comparison never matches and the
-    # upsert would try to re-insert existing rows (UNIQUE violation).
+    # upsert would try to re-insert existing rows (UNIQUE violation). Bound the
+    # existing-check by the FRAME's actual range (not the requested start/end,
+    # which may carry a time component that misaligns with day-boundary bars).
+    frame_start = _utc(frame.index.min().to_pydatetime())
+    frame_end = _utc(frame.index.max().to_pydatetime())
     existing = {
         _dedup_key(ts)
         for (ts,) in db.execute(
             select(HistoricalCandle.ts).where(
                 HistoricalCandle.instrument_id == inst.id,
                 HistoricalCandle.timeframe == timeframe,
-                HistoricalCandle.ts >= _utc(start),
-                HistoricalCandle.ts <= _utc(end),
+                HistoricalCandle.ts >= frame_start,
+                HistoricalCandle.ts <= frame_end,
             )
         )
     }

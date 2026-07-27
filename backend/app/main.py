@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db import SessionLocal, init_db
-from app.routers import backtests, data, health, strategies, sweeps
+from app.routers import backtests, data, health, signals, strategies, sweeps
 from app.seed import seed_strategy_models
 
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +42,7 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(strategies.router)
 app.include_router(backtests.router)
+app.include_router(signals.router)
 app.include_router(data.router)
 app.include_router(sweeps.router)
 
