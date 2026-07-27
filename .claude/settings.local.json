@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(docker --version)",
+      "Bash(cd \"/Users/judytsai/Desktop/adj_result\" && rm -f optimizer_math.aux optimizer_math.log optimizer_math.out && ls -la optimizer_math.*)",
+      "Bash(cd \"/Users/judytsai/Desktop/adj_result\" && rm -f optimizer_math.aux optimizer_math.log optimizer_math.out optimizer_math.toc && ls -la optimizer_math.*)"
+    ]
+  }
+}
