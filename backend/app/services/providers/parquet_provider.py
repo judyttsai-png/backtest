@@ -52,6 +52,27 @@ def _normalize(symbol: str) -> str:
 _RESAMPLE_RULE = {"15m": "15min", "30m": "30min", "1h": "1h", "1d": "1D"}
 
 
+def _fetch_live_tail(
+    symbol: str, timeframe: str, after: datetime, end: datetime
+) -> pd.DataFrame:
+    """Recent bars strictly after ``after`` from yfinance, to extend the parquet
+    past its last timestamp. Daily only for v1 (yfinance intraday FX history is
+    short/spotty). Fully guarded — any failure returns empty so the backtest
+    still runs on the parquet history alone."""
+    if timeframe != "1d":
+        return pd.DataFrame(columns=CANDLE_COLUMNS)
+    try:
+        from app.services.providers.yfinance_provider import YFinanceProvider
+
+        yf_symbol = _normalize(symbol) + "=X"  # FX ticker form, e.g. EURUSD=X
+        df = YFinanceProvider().fetch_daily(yf_symbol, after, end)
+        if df.empty:
+            return df
+        return df.loc[df.index > _as_utc(after)]  # strictly newer than the parquet
+    except Exception:
+        return pd.DataFrame(columns=CANDLE_COLUMNS)
+
+
 class ParquetProvider(DataProvider):
     name = "parquet"
 
@@ -89,7 +110,18 @@ class ParquetProvider(DataProvider):
         out["close"] = bars["last"].to_numpy()
         out["volume"] = 0.0  # spot FX has no consolidated volume
         out["adjusted_close"] = bars["last"].to_numpy()
-        return out[CANDLE_COLUMNS]
+        out = out[CANDLE_COLUMNS]
+
+        # Gap-fill: if the request runs past the parquet's last bar, top up the
+        # tail from yfinance so the data stays current going forward.
+        if settings.fx_live_gapfill and not out.empty:
+            last = out.index.max()
+            if _as_utc(end) > last:
+                tail = _fetch_live_tail(col, timeframe, last, end)
+                if not tail.empty:
+                    out = pd.concat([out, tail[CANDLE_COLUMNS]])
+                    out = out[~out.index.duplicated(keep="first")].sort_index()
+        return out
 
     def fetch_daily(self, symbol: str, start: datetime, end: datetime) -> pd.DataFrame:
         return self.fetch(symbol, "1d", start, end)

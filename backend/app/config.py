@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     default_data_provider: str = "synthetic"
     # Path to the wide 15-min FX close panel used by the parquet provider.
     fx_parquet_path: str = ""
+    # When true, the parquet provider tops up recent bars from yfinance for any
+    # requested range that extends past the parquet's last timestamp (gap-fill).
+    fx_live_gapfill: bool = True
 
     # CORS (comma separated)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
