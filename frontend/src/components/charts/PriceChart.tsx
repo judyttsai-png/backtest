@@ -7,12 +7,16 @@ import {
   type LineData,
   type SeriesMarker,
   type Time,
+  type UTCTimestamp,
 } from "lightweight-charts";
 import type { Candle, Marker } from "../../types/api";
 import { readChartPalette } from "./palette";
 import { useUiStore } from "../../state/uiStore";
 
-const day = (ts: string): Time => ts.slice(0, 10) as Time;
+// UTC timestamp (seconds) so intraday bars keep distinct times — a date-only
+// key collapses all 15m/30m/1h bars of a day onto one point and breaks the chart.
+const day = (ts: string): Time =>
+  (Date.parse(/[Z+]/.test(ts) ? ts : ts + "Z") / 1000) as UTCTimestamp;
 
 interface Props {
   candles: Candle[];

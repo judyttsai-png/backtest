@@ -8,12 +8,15 @@ import {
   type HistogramData,
   type SeriesMarker,
   type Time,
+  type UTCTimestamp,
 } from "lightweight-charts";
 import type { Candle, Marker } from "../../types/api";
 import { readChartPalette } from "./palette";
 import { useUiStore } from "../../state/uiStore";
 
-const day = (ts: string): Time => ts.slice(0, 10) as Time;
+// UTC timestamp (seconds) so intraday bars keep distinct times.
+const day = (ts: string): Time =>
+  (Date.parse(/[Z+]/.test(ts) ? ts : ts + "Z") / 1000) as UTCTimestamp;
 
 interface Props {
   candles: Candle[];
