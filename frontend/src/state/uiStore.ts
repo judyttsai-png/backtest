@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { ExecutionMode, StrategyMeta, Timeframe } from "../types/api";
 
 export type Theme = "dark" | "light";
+export type Tab = "backtest" | "signals";
 
 interface UiState {
   strategyId: string;
@@ -17,6 +18,7 @@ interface UiState {
   initialCapital: number;
 
   theme: Theme;
+  tab: Tab;
 
   activeRunId: string | null;
   activeSweepId: string | null;
@@ -59,6 +61,7 @@ export const useUiStore = create<UiState>((set) => ({
   initialCapital: 100000,
 
   theme: initialTheme(),
+  tab: "backtest",
 
   activeRunId: null,
   activeSweepId: null,

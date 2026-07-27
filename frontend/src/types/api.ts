@@ -117,6 +117,32 @@ export interface MarkersResponse {
   markers: Marker[];
 }
 
+export interface ModelSignal {
+  model: string;
+  name: string;
+  direction: number; // -1 short, 0 flat, +1 long
+  strength: number;
+}
+
+export interface PairSignals {
+  symbol: string;
+  consensus: { direction: number; long: number; short: number; flat: number; agree: number };
+  signals: ModelSignal[];
+}
+
+export interface SignalsResponse {
+  asof: string;
+  timeframe: Timeframe;
+  models: string[];
+  pairs: PairSignals[];
+}
+
+export interface SignalsRequest {
+  symbols: string[];
+  timeframe: Timeframe;
+  models?: { id: string; parameters?: Record<string, number> }[];
+}
+
 export interface Trade {
   id: number;
   symbol: string;

@@ -9,6 +9,8 @@ import type {
   HeatmapResponse,
   MarkersResponse,
   Metrics,
+  SignalsRequest,
+  SignalsResponse,
   StrategyMeta,
   SweepCreateResponse,
   SweepRequest,
@@ -32,6 +34,10 @@ export const getMarkers = (id: string, symbol?: string) =>
   api.get<MarkersResponse>(`/api/backtests/${id}/markers${symbol ? `?symbol=${symbol}` : ""}`);
 export const getTrades = (id: string, limit: number, offset: number) =>
   api.get<TradesResponse>(`/api/backtests/${id}/trades?limit=${limit}&offset=${offset}`);
+
+// signals (live recommendations)
+export const postSignals = (req: SignalsRequest) =>
+  api.post<SignalsResponse>("/api/signals", req);
 
 // data
 export const getCoverage = (symbol: string, timeframe = "1d") =>
