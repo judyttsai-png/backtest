@@ -68,6 +68,9 @@ class ExecutionConfig:
     cost_bps: float = 5.0
     slippage_bps: float = 0.0
     initial_capital: float = 100_000.0
+    allocation: str = "all_in"  # "all_in" | "equal" (equal-weight the book)
+    topup_pct: float = 0.0  # captured with the run; sizing engine WIP
+    trim_pct: float = 0.0
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "ExecutionConfig":
@@ -76,6 +79,9 @@ class ExecutionConfig:
             cost_bps=float(d.get("cost_bps", 5.0)),
             slippage_bps=float(d.get("slippage_bps", 0.0)),
             initial_capital=float(d.get("initial_capital", 100_000.0)),
+            allocation=d.get("allocation", "all_in"),
+            topup_pct=float(d.get("topup_pct", 0.0)),
+            trim_pct=float(d.get("trim_pct", 0.0)),
         )
 
     @property
@@ -235,6 +241,11 @@ def _run_portfolio(strategy, params, candles, exec_cfg: ExecutionConfig) -> Back
     weights = weights.reindex(index=close_panel.index, columns=close_panel.columns).fillna(0.0)
     if exec_cfg.mode == "long_flat":
         weights = weights.clip(lower=0.0)
+    if exec_cfg.allocation == "equal":
+        # Equal distribution: give every held name the same gross weight (1/N per
+        # bar), overriding the strategy's own sizing, keeping the long/short sign.
+        n_held = (weights != 0).sum(axis=1).replace(0, np.nan)
+        weights = np.sign(weights).mul(1.0 / n_held, axis=0).fillna(0.0)
 
     applied = weights.shift(1).fillna(0.0)  # anti-lookahead
     asset_returns = close_panel.pct_change().fillna(0.0)

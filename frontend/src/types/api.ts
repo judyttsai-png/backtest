@@ -25,6 +25,9 @@ export interface ExecutionConfig {
   cost_bps: number;
   slippage_bps: number;
   initial_capital: number;
+  allocation?: "all_in" | "equal";
+  topup_pct?: number;
+  trim_pct?: number;
 }
 
 export interface BacktestRequest {

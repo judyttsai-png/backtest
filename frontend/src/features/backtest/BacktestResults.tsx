@@ -155,7 +155,7 @@ export function BacktestResults() {
       {metricsQuery.data?.strategy_model_id === "sma" && candlesQuery.data && (
         <section className="panel">
           <div className="phead">
-            <span className="ptitle">SMA crossover</span>
+            <span className="ptitle">SMA divergence</span>
             <span className="psub">{candlesQuery.data.symbol}</span>
             <span className="legend">
               <span>

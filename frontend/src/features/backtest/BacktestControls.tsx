@@ -55,6 +55,9 @@ export function BacktestControls({ strategies }: Props) {
         cost_bps: s.costBps,
         slippage_bps: s.slippageBps,
         initial_capital: s.initialCapital,
+        allocation: s.allocation,
+        topup_pct: s.topupPct,
+        trim_pct: s.trimPct,
       },
     };
     mutation.mutate(req);
@@ -220,6 +223,40 @@ export function BacktestControls({ strategies }: Props) {
             value={s.initialCapital}
             onChange={(e) => s.set("initialCapital", Number(e.target.value) || 0)}
           />
+        </div>
+
+        <div className="field">
+          <label>initial allocation</label>
+          <select
+            value={s.allocation}
+            onChange={(e) => s.set("allocation", e.target.value as "all_in" | "equal")}
+          >
+            <option value="all_in">All-in (full capital)</option>
+            <option value="equal">Equal distribution (split across names)</option>
+          </select>
+          <div className="hint">how the initial capital is deployed across the universe</div>
+        </div>
+
+        <div className="axisrow">
+          <div className="field">
+            <label>add / top-up (%)</label>
+            <input
+              type="number"
+              value={s.topupPct}
+              onChange={(e) => s.set("topupPct", Number(e.target.value) || 0)}
+            />
+          </div>
+          <div className="field">
+            <label>reduce / trim (%)</label>
+            <input
+              type="number"
+              value={s.trimPct}
+              onChange={(e) => s.set("trimPct", Number(e.target.value) || 0)}
+            />
+          </div>
+        </div>
+        <div className="hint" style={{ marginTop: -6 }}>
+          Allocation is applied; top-up / trim are captured with the run (sizing engine WIP).
         </div>
       </div>
 

@@ -544,7 +544,7 @@ table {
   font-size: 11.5px;
 }
 th {
-  text-align: right;
+  text-align: left;
   font-weight: 500;
   color: var(--mute);
   letter-spacing: 0.08em;
@@ -556,8 +556,7 @@ th {
   top: 0;
   background: var(--panel);
 }
-th:first-child,
-td:first-child {
+td {
   text-align: left;
 }
 td {

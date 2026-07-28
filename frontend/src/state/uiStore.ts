@@ -16,6 +16,9 @@ interface UiState {
   costBps: number;
   slippageBps: number;
   initialCapital: number;
+  allocation: "all_in" | "equal";
+  topupPct: number;
+  trimPct: number;
 
   theme: Theme;
   tab: Tab;
@@ -71,6 +74,9 @@ export const useUiStore = create<UiState>((set) => ({
   costBps: 5,
   slippageBps: 0,
   initialCapital: 100000,
+  allocation: "all_in",
+  topupPct: 0,
+  trimPct: 0,
 
   theme: initialTheme(),
   tab: "backtest",
