@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUiStore } from "../../state/uiStore";
-import { postSignals } from "../../api/endpoints";
+import { getStrategies, postSignals } from "../../api/endpoints";
 import type { ModelSignal, PairSignals } from "../../types/api";
 import { PositionsPanel } from "./PositionsPanel";
+import { ModelSettings } from "./ModelSettings";
 import { fmtInstant, tzLabel } from "../../lib/time";
 
 const label = (d: number) => (d > 0 ? "LONG" : d < 0 ? "SHORT" : "NEUTRAL");
@@ -17,7 +18,8 @@ const fmtVal = (s: ModelSignal): string => {
 };
 
 /** Live recommendation view: each pair's current call, the models backing it,
- *  the index value behind each vote, and editable barriers you can tune. */
+ *  the index value behind each vote, and a collapsible editor for every model
+ *  variable. */
 export function SignalsPage() {
   const symbols = useUiStore((s) => s.symbols);
   const timeframe = useUiStore((s) => s.timeframe);
@@ -27,28 +29,25 @@ export function SignalsPage() {
     .map((x) => x.trim().toUpperCase())
     .filter(Boolean);
 
-  // Editable barriers (defaults match each model's default param).
-  const [dmiFloor, setDmiFloor] = useState(20);
-  const [rocThr, setRocThr] = useState(1);
-  const [velaccVthr, setVelaccVthr] = useState(2);
-  const [velcrossVthr, setVelcrossVthr] = useState(5);
+  const strategiesQ = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
+  const strategies = strategiesQ.data ?? [];
 
-  const models = [
-    { id: "sma" },
-    { id: "roc", parameters: { thr: rocThr } },
-    { id: "velacc", parameters: { vthr: velaccVthr } },
-    { id: "dmi", parameters: { adx_floor: dmiFloor } },
-    { id: "velcross", parameters: { vthr: velcrossVthr } },
-  ];
+  // Per-model parameter overrides (empty = use each model's defaults).
+  const [overrides, setOverrides] = useState<Record<string, Record<string, number>>>({});
+  const setOverride = (modelId: string, paramId: string, value: number) =>
+    setOverrides((o) => ({ ...o, [modelId]: { ...(o[modelId] || {}), [paramId]: value } }));
+
+  const models =
+    strategies.length > 0
+      ? strategies.map((m) => ({ id: m.id, parameters: overrides[m.id] || {} }))
+      : undefined;
 
   const q = useQuery({
-    queryKey: ["signals", symbols, timeframe, dmiFloor, rocThr, velaccVthr, velcrossVthr],
+    queryKey: ["signals", symbols, timeframe, JSON.stringify(overrides), strategies.length],
     queryFn: () => postSignals({ symbols: symbolList, timeframe, models }),
     enabled: symbolList.length > 0,
     refetchOnWindowFocus: false,
   });
-
-  const num = (v: string, fallback: number) => (v === "" ? fallback : Number(v));
 
   return (
     <>
@@ -72,30 +71,16 @@ export function SignalsPage() {
           </span>
         </div>
 
-        {/* editable barriers — change a value and the recommendations recompute */}
-        <div className="thresholds">
-          <span className="thlabel">barriers</span>
-          <label>
-            DMI ADX floor
-            <input type="number" value={dmiFloor} onChange={(e) => setDmiFloor(num(e.target.value, 20))} />
-          </label>
-          <label>
-            ROC thr %
-            <input type="number" step="0.5" value={rocThr} onChange={(e) => setRocThr(num(e.target.value, 1))} />
-          </label>
-          <label>
-            velacc vthr
-            <input type="number" value={velaccVthr} onChange={(e) => setVelaccVthr(num(e.target.value, 2))} />
-          </label>
-          <label>
-            velcross vthr
-            <input type="number" value={velcrossVthr} onChange={(e) => setVelcrossVthr(num(e.target.value, 5))} />
-          </label>
-        </div>
+        <ModelSettings
+          strategies={strategies}
+          overrides={overrides}
+          onChange={setOverride}
+          onReset={() => setOverrides({})}
+        />
 
         <div className="hint" style={{ marginBottom: 14 }}>
-          Direction each model recommends now, with the index value behind it. Raise/lower a barrier
-          to change what counts as a signal. Validate out-of-sample before trading.
+          Direction each model recommends now, with the index value behind it. Open “model settings”
+          to tune any variable. Validate out-of-sample before trading.
         </div>
 
         {q.isError && <div className="banner err">signals error — {(q.error as Error).message}</div>}
