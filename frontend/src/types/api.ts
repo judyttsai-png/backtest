@@ -122,6 +122,9 @@ export interface ModelSignal {
   name: string;
   direction: number; // -1 short, 0 flat, +1 long
   strength: number;
+  value: number | null; // the model's key index reading
+  unit: string;
+  threshold: number | null; // the barrier the value is compared to
 }
 
 export interface PairSignals {

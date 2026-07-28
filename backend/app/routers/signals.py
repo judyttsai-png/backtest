@@ -40,6 +40,26 @@ def _direction(x: float) -> int:
     return 1 if x > 0 else -1 if x < 0 else 0
 
 
+def _nan_to_none(x: float) -> float | None:
+    return None if x != x else x  # NaN -> None
+
+
+def _reading(model_id: str, sig, params: dict) -> tuple[float | None, str, float | None]:
+    """The model's key index value, its unit, and the barrier it's compared to."""
+    try:
+        if model_id == "dmi":
+            return _nan_to_none(round(float(sig["adx"].iloc[-1]), 1)), "ADX", float(params.get("adx_floor", 0))
+        if model_id == "roc":
+            return _nan_to_none(round(float(sig["roc"].iloc[-1]) * 100, 3)), "%", float(params.get("thr", 0))
+        if model_id == "sma":
+            f, s = float(sig["fast_sma"].iloc[-1]), float(sig["slow_sma"].iloc[-1])
+            spread = (f / s - 1) * 100 if s else float("nan")
+            return _nan_to_none(round(spread, 3)), "% fast vs slow", 0.0
+    except Exception:
+        pass
+    return None, "", None
+
+
 @router.post("")
 def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
     end = req.asof or datetime.now(timezone.utc)
@@ -73,11 +93,13 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
                 continue
             weights = strat.generate_signals(panel, params)
             last = weights.reindex(columns=panel.columns).iloc[-1]
+            vthr = params.get("vthr")
             for sym in symbols:
                 w = float(last.get(sym, 0.0)) if sym in last.index else 0.0
                 acc[sym].append(
                     {"model": strat.id, "name": strat.name, "direction": _direction(w),
-                     "strength": round(abs(w), 4)}
+                     "strength": round(abs(w), 4), "value": None, "unit": "weight",
+                     "threshold": vthr}
                 )
         else:  # single-asset
             for sym in symbols:
@@ -87,9 +109,11 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
                 sig = strat.generate_signals(df, params)
                 tp = sig["target_position"].astype(float)
                 val = float(tp.iloc[-1]) if len(tp) else 0.0
+                value, unit, threshold = _reading(strat.id, sig, params)
                 acc[sym].append(
                     {"model": strat.id, "name": strat.name, "direction": _direction(val),
-                     "strength": round(abs(val), 4)}
+                     "strength": round(abs(val), 4), "value": value, "unit": unit,
+                     "threshold": threshold}
                 )
 
     pairs = []
