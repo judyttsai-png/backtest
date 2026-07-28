@@ -12,6 +12,7 @@ import {
 } from "lightweight-charts";
 import type { Candle, Marker } from "../../types/api";
 import { readChartPalette } from "./palette";
+import { chartLocalization, chartTickFormatter } from "../../lib/time";
 import { useUiStore } from "../../state/uiStore";
 
 // UTC timestamp (seconds) so intraday bars keep distinct times.
@@ -125,13 +126,14 @@ export function DmiChart({ candles, markers, length, floor }: Props) {
   const dmiRef = useRef<HTMLDivElement>(null);
   const posRef = useRef<HTMLDivElement>(null);
   const theme = useUiStore((s) => s.theme);
+  const tzMinutes = useUiStore((s) => s.tzMinutes);
 
   useEffect(() => {
     if (!dmiRef.current || !posRef.current) return;
     const palette = readChartPalette();
 
     // --- top chart: price (left axis) + +DI / -DI / ADX (right axis) ---
-    const dmiChart = createChart(dmiRef.current, baseOptions(dmiRef.current, palette, true));
+    const dmiChart = createChart(dmiRef.current, baseOptions(dmiRef.current, palette, true, tzMinutes));
     const priceS = dmiChart.addLineSeries({
       color: palette.line,
       lineWidth: 1,
@@ -152,7 +154,7 @@ export function DmiChart({ candles, markers, length, floor }: Props) {
     });
 
     // --- bottom chart: long/short position strip ---
-    const posChart = createChart(posRef.current, baseOptions(posRef.current, palette, false));
+    const posChart = createChart(posRef.current, baseOptions(posRef.current, palette, false, tzMinutes));
     const posS = posChart.addHistogramSeries({
       priceScaleId: "right",
       priceLineVisible: false,
@@ -225,7 +227,7 @@ export function DmiChart({ candles, markers, length, floor }: Props) {
       dmiChart.remove();
       posChart.remove();
     };
-  }, [candles, markers, length, floor, theme]);
+  }, [candles, markers, length, floor, theme, tzMinutes]);
 
   return (
     <>
@@ -251,6 +253,7 @@ function baseOptions(
   el: HTMLElement,
   palette: ReturnType<typeof readChartPalette>,
   withLeftScale: boolean,
+  tz: number,
 ) {
   return {
     width: el.clientWidth,
@@ -267,7 +270,8 @@ function baseOptions(
     },
     leftPriceScale: { visible: withLeftScale, borderColor: palette.grid },
     rightPriceScale: { visible: true, borderColor: palette.grid },
-    timeScale: { borderColor: palette.grid, visible: true },
+    timeScale: { borderColor: palette.grid, visible: true, tickMarkFormatter: chartTickFormatter(tz) },
+    localization: chartLocalization(tz),
     crosshair: { mode: 1 },
   };
 }

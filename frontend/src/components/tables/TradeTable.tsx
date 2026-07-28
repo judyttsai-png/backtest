@@ -1,17 +1,12 @@
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getTrades } from "../../api/endpoints";
+import { useUiStore } from "../../state/uiStore";
+import { fmtBarTime } from "../../lib/time";
 
 const PAGE = 25;
 const money = (x: number | null) => (x == null ? "—" : x.toFixed(2));
 const pct = (x: number | null) => (x == null ? "—" : `${(x * 100).toFixed(2)}%`);
-// Show the intraday time too; keep it to just the date for daily bars (00:00).
-const dt = (ts: string | null) => {
-  if (!ts) return "—";
-  const date = ts.slice(0, 10);
-  const time = ts.slice(11, 16); // HH:MM
-  return time && time !== "00:00" ? `${date} ${time}` : date;
-};
 
 interface Props {
   runId: string;
@@ -19,6 +14,7 @@ interface Props {
 
 export function TradeTable({ runId }: Props) {
   const [page, setPage] = useState(0);
+  const tzMinutes = useUiStore((s) => s.tzMinutes);
   const query = useQuery({
     queryKey: ["trades", runId, page],
     queryFn: () => getTrades(runId, PAGE, page * PAGE),
@@ -57,8 +53,8 @@ export function TradeTable({ runId }: Props) {
                 <td className={t.side === "buy" ? "side-long" : "side-short"}>
                   {t.side === "buy" ? "LONG" : "SHORT"}
                 </td>
-                <td>{dt(t.entry_ts)}</td>
-                <td>{dt(t.exit_ts)}</td>
+                <td>{fmtBarTime(t.entry_ts, tzMinutes)}</td>
+                <td>{fmtBarTime(t.exit_ts, tzMinutes)}</td>
                 <td>{money(t.entry_price)}</td>
                 <td>{money(t.exit_price)}</td>
                 <td>{t.holding_bars ?? "—"}</td>

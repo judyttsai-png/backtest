@@ -11,6 +11,7 @@ import {
 } from "lightweight-charts";
 import type { Candle, Marker } from "../../types/api";
 import { readChartPalette } from "./palette";
+import { chartLocalization, chartTickFormatter } from "../../lib/time";
 import { useUiStore } from "../../state/uiStore";
 
 // UTC timestamp (seconds) so intraday bars keep distinct times — a date-only
@@ -28,12 +29,13 @@ export function PriceChart({ candles, markers }: Props) {
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Line"> | null>(null);
   const theme = useUiStore((s) => s.theme);
+  const tzMinutes = useUiStore((s) => s.tzMinutes);
 
-  // Create the chart once per theme (rebuilds when the palette changes).
+  // Create the chart once per theme/timezone (rebuilds when they change).
   useEffect(() => {
     if (!containerRef.current) return;
     const palette = readChartPalette();
-    const chart = createChart(containerRef.current, baseOptions(containerRef.current, palette));
+    const chart = createChart(containerRef.current, baseOptions(containerRef.current, palette, tzMinutes));
     const series = chart.addLineSeries({ color: palette.line, lineWidth: 2 });
     chartRef.current = chart;
     seriesRef.current = series;
@@ -48,7 +50,7 @@ export function PriceChart({ candles, markers }: Props) {
       chartRef.current = null;
       seriesRef.current = null;
     };
-  }, [theme]);
+  }, [theme, tzMinutes]);
 
   // Update data imperatively when it changes (or after a theme rebuild).
   useEffect(() => {
@@ -91,7 +93,7 @@ export function PriceChart({ candles, markers }: Props) {
   return <div className="chart" ref={containerRef} />;
 }
 
-function baseOptions(el: HTMLElement, palette: ReturnType<typeof readChartPalette>) {
+function baseOptions(el: HTMLElement, palette: ReturnType<typeof readChartPalette>, tz: number) {
   return {
     width: el.clientWidth,
     height: el.clientHeight,
@@ -106,7 +108,8 @@ function baseOptions(el: HTMLElement, palette: ReturnType<typeof readChartPalett
       horzLines: { color: palette.grid },
     },
     rightPriceScale: { borderColor: palette.grid },
-    timeScale: { borderColor: palette.grid },
+    timeScale: { borderColor: palette.grid, tickMarkFormatter: chartTickFormatter(tz) },
+    localization: chartLocalization(tz),
     crosshair: { mode: 1 },
   };
 }

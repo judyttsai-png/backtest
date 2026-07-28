@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useUiStore } from "../../state/uiStore";
 import { createBacktest } from "../../api/endpoints";
 import type { BacktestRequest, StrategyMeta } from "../../types/api";
 import { ApiError } from "../../api/client";
+import { MODEL_INFO } from "../../lib/modelInfo";
 
 const MODEL_MARKS: Record<string, string> = { velacc: "∂", sma: "×", roc: "%", dmi: "±", velcross: "∿" };
 const TIMEFRAMES = ["1d", "1h", "30m", "15m", "5m", "1m"] as const;
@@ -14,10 +15,12 @@ interface Props {
 
 export function BacktestControls({ strategies }: Props) {
   const s = useUiStore();
+  const [showInfo, setShowInfo] = useState(false);
   const selected = useMemo(
     () => strategies.find((m) => m.id === s.strategyId),
     [strategies, s.strategyId],
   );
+  const infoBullets = (selected && MODEL_INFO[selected.id]) || [];
 
   // Initialise parameter defaults once strategy metadata is available.
   useEffect(() => {
@@ -73,7 +76,30 @@ export function BacktestControls({ strategies }: Props) {
             </button>
           ))}
         </div>
-        {selected && <p className="mdesc">{selected.description}</p>}
+        {selected && (
+          <>
+            <p className="mdesc">
+              {selected.description}
+              {infoBullets.length > 0 && (
+                <button
+                  type="button"
+                  className="infobtn"
+                  onClick={() => setShowInfo((v) => !v)}
+                  aria-expanded={showInfo}
+                >
+                  {showInfo ? "▾ how it works" : "▸ how it works"}
+                </button>
+              )}
+            </p>
+            {showInfo && (
+              <ul className="modelinfo">
+                {infoBullets.map((b, i) => (
+                  <li key={i}>{b}</li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
       </div>
 
       <div className="group">

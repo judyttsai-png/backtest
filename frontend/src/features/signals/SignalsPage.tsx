@@ -4,6 +4,7 @@ import { useUiStore } from "../../state/uiStore";
 import { postSignals } from "../../api/endpoints";
 import type { ModelSignal, PairSignals } from "../../types/api";
 import { PositionsPanel } from "./PositionsPanel";
+import { fmtInstant, tzLabel } from "../../lib/time";
 
 const label = (d: number) => (d > 0 ? "LONG" : d < 0 ? "SHORT" : "NEUTRAL");
 const cls = (d: number) => (d > 0 ? "sig-long" : d < 0 ? "sig-short" : "sig-flat");
@@ -20,6 +21,7 @@ const fmtVal = (s: ModelSignal): string => {
 export function SignalsPage() {
   const symbols = useUiStore((s) => s.symbols);
   const timeframe = useUiStore((s) => s.timeframe);
+  const tzMinutes = useUiStore((s) => s.tzMinutes);
   const symbolList = symbols
     .split(",")
     .map((x) => x.trim().toUpperCase())
@@ -55,7 +57,7 @@ export function SignalsPage() {
           <span className="ptitle">Live recommendations</span>
           <span className="psub">
             {q.data
-              ? `${q.data.pairs.length} pairs · ${timeframe} · as of ${q.data.asof.slice(0, 16).replace("T", " ")} UTC`
+              ? `${q.data.pairs.length} pairs · ${timeframe} · as of ${fmtInstant(q.data.asof, tzMinutes)} ${tzLabel(tzMinutes)}`
               : "computing…"}
           </span>
           <span style={{ marginLeft: "auto" }}>

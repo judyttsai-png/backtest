@@ -10,6 +10,7 @@ import {
 } from "lightweight-charts";
 import type { EquityResponse } from "../../types/api";
 import { readChartPalette } from "./palette";
+import { chartLocalization, chartTickFormatter } from "../../lib/time";
 import { useUiStore } from "../../state/uiStore";
 
 // UTC timestamp (seconds) so intraday bars keep distinct times.
@@ -26,6 +27,7 @@ export function EquityChart({ equity }: Props) {
   const stratRef = useRef<ISeriesApi<"Line"> | null>(null);
   const benchRef = useRef<ISeriesApi<"Line"> | null>(null);
   const theme = useUiStore((s) => s.theme);
+  const tzMinutes = useUiStore((s) => s.tzMinutes);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -42,7 +44,8 @@ export function EquityChart({ equity }: Props) {
       },
       grid: { vertLines: { color: palette.grid }, horzLines: { color: palette.grid } },
       rightPriceScale: { borderColor: palette.grid },
-      timeScale: { borderColor: palette.grid },
+      timeScale: { borderColor: palette.grid, tickMarkFormatter: chartTickFormatter(tzMinutes) },
+      localization: chartLocalization(tzMinutes),
       crosshair: { mode: 1 },
     });
     stratRef.current = chart.addLineSeries({ color: palette.amber, lineWidth: 2 });
@@ -55,7 +58,7 @@ export function EquityChart({ equity }: Props) {
       ro.disconnect();
       chart.remove();
     };
-  }, [theme]);
+  }, [theme, tzMinutes]);
 
   useEffect(() => {
     if (!stratRef.current || !benchRef.current) return;

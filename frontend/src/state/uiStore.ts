@@ -19,6 +19,7 @@ interface UiState {
 
   theme: Theme;
   tab: Tab;
+  tzMinutes: number; // display timezone offset from UTC, in minutes
 
   activeRunId: string | null;
   activeSweepId: string | null;
@@ -47,6 +48,17 @@ function initialTheme(): Theme {
   return "dark";
 }
 
+const TZ_KEY = "backtest-tz";
+function initialTz(): number {
+  try {
+    const stored = localStorage.getItem(TZ_KEY);
+    if (stored != null && !Number.isNaN(Number(stored))) return Number(stored);
+  } catch {
+    /* localStorage unavailable */
+  }
+  return 0;
+}
+
 export const useUiStore = create<UiState>((set) => ({
   strategyId: "sma",
   params: { fast: 10, slow: 40 },
@@ -62,6 +74,7 @@ export const useUiStore = create<UiState>((set) => ({
 
   theme: initialTheme(),
   tab: "backtest",
+  tzMinutes: initialTz(),
 
   activeRunId: null,
   activeSweepId: null,

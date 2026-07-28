@@ -11,6 +11,7 @@ import {
 } from "lightweight-charts";
 import type { Candle, Marker } from "../../types/api";
 import { readChartPalette } from "./palette";
+import { chartLocalization, chartTickFormatter } from "../../lib/time";
 import { useUiStore } from "../../state/uiStore";
 
 // UTC timestamp (seconds) so intraday bars keep distinct times.
@@ -47,6 +48,7 @@ export function SmaChart({ candles, markers, fast, slow }: Props) {
   const fastRef = useRef<ISeriesApi<"Line"> | null>(null);
   const slowRef = useRef<ISeriesApi<"Line"> | null>(null);
   const theme = useUiStore((s) => s.theme);
+  const tzMinutes = useUiStore((s) => s.tzMinutes);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -63,7 +65,8 @@ export function SmaChart({ candles, markers, fast, slow }: Props) {
       },
       grid: { vertLines: { color: p.grid }, horzLines: { color: p.grid } },
       rightPriceScale: { borderColor: p.grid },
-      timeScale: { borderColor: p.grid },
+      timeScale: { borderColor: p.grid, tickMarkFormatter: chartTickFormatter(tzMinutes) },
+      localization: chartLocalization(tzMinutes),
       crosshair: { mode: 1 },
     });
     // faint price for reference; the two SMAs are the focus
@@ -94,7 +97,7 @@ export function SmaChart({ candles, markers, fast, slow }: Props) {
       chart.remove();
       chartRef.current = null;
     };
-  }, [theme]);
+  }, [theme, tzMinutes]);
 
   useEffect(() => {
     if (!priceRef.current || !fastRef.current || !slowRef.current) return;

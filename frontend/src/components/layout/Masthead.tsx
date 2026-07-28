@@ -1,4 +1,5 @@
 import { useUiStore } from "../../state/uiStore";
+import { TZ_OPTIONS } from "../../lib/time";
 
 interface Props {
   backendOk: boolean;
@@ -11,7 +12,16 @@ export function Masthead({ backendOk, backendError }: Props) {
   const theme = useUiStore((s) => s.theme);
   const toggleTheme = useUiStore((s) => s.toggleTheme);
   const tab = useUiStore((s) => s.tab);
+  const tzMinutes = useUiStore((s) => s.tzMinutes);
   const set = useUiStore((s) => s.set);
+  const setTz = (min: number) => {
+    set("tzMinutes", min);
+    try {
+      localStorage.setItem("backtest-tz", String(min));
+    } catch {
+      /* ignore */
+    }
+  };
   return (
     <header className="mast">
       <div className="brand">
@@ -38,6 +48,19 @@ export function Masthead({ backendOk, backendError }: Props) {
           <span className={dotClass} /> {label}
         </span>
         <span>{new Date().toISOString().slice(0, 10)}</span>
+        <select
+          className="tzsel"
+          value={tzMinutes}
+          onChange={(e) => setTz(Number(e.target.value))}
+          title="display timezone"
+          aria-label="display timezone"
+        >
+          {TZ_OPTIONS.map((t) => (
+            <option key={t.min} value={t.min}>
+              {t.label}
+            </option>
+          ))}
+        </select>
         <button
           type="button"
           className="themebtn"
