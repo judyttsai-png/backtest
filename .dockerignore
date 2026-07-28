@@ -1,0 +1,13 @@
+**/node_modules
+**/.venv
+**/__pycache__
+**/*.pyc
+**/*.sqlite3
+**/dist
+.git
+docs
+*.md
+!backend/requirements.txt
+frontend/.vite
+.env
+.env.*

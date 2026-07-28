@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     # CORS (comma separated)
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Deploy: serve the built frontend from this dir (single origin) when set,
+    # and require HTTP basic auth when a user is configured (password gate).
+    frontend_dist: str = ""
+    basic_auth_user: str = ""
+    basic_auth_pass: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
