@@ -26,11 +26,12 @@ COPY data/ ./data/
 
 ENV DATABASE_URL="sqlite:///./backtest.sqlite3" \
     CELERY_TASK_ALWAYS_EAGER=1 \
-    DEFAULT_DATA_PROVIDER=synthetic \
+    DEFAULT_DATA_PROVIDER=parquet \
+    FX_PARQUET_PATH=/app/data/fx_15min.parquet \
     FRONTEND_DIST=/app/frontend_dist \
     PORT=8000
-# Real FX data: set DEFAULT_DATA_PROVIDER=parquet and
-#   FX_PARQUET_PATH=/app/data/fx_15min.parquet (after adding the file to ./data/)
+# Uses the real FX parquet baked into ./data/. To fall back to fake data set
+# DEFAULT_DATA_PROVIDER=synthetic; for delayed live daily FX set it to yfinance.
 # Password gate: set BASIC_AUTH_USER and BASIC_AUTH_PASS.
 
 EXPOSE 8000
