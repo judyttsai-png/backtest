@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useUiStore } from "../../state/uiStore";
 import { postSignals } from "../../api/endpoints";
 import type { PairSignals } from "../../types/api";
+import { PositionsPanel } from "./PositionsPanel";
 
 const label = (d: number) => (d > 0 ? "LONG" : d < 0 ? "SHORT" : "NEUTRAL");
 const cls = (d: number) => (d > 0 ? "sig-long" : d < 0 ? "sig-short" : "sig-flat");
@@ -25,7 +26,8 @@ export function SignalsPage() {
   });
 
   return (
-    <div className="panel">
+    <>
+      <div className="panel">
       <div className="phead">
         <span className="ptitle">Live recommendations</span>
         <span className="psub">
@@ -58,7 +60,9 @@ export function SignalsPage() {
           <PairCard key={p.symbol} p={p} />
         ))}
       </div>
-    </div>
+      </div>
+      <PositionsPanel signals={q.data} />
+    </>
   );
 }
 
