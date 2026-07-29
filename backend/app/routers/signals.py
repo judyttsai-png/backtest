@@ -119,6 +119,13 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
                      "threshold": threshold}
                 )
 
+    # latest close per pair (for the positions panel's live P&L)
+    prices: dict[str, float] = {}
+    for sym in symbols:
+        panel = bundle.panels.get(sym)
+        if panel is not None and not panel.empty:
+            prices[sym] = round(float(panel["close"].iloc[-1]), 6)
+
     pairs = []
     for sym in symbols:
         sigs = acc[sym]
@@ -128,6 +135,7 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
         net = _direction(longs - shorts)
         pairs.append({
             "symbol": sym,
+            "price": prices.get(sym),
             "consensus": {"direction": net, "long": longs, "short": shorts, "flat": flats,
                           "agree": max(longs, shorts)},
             "signals": sigs,

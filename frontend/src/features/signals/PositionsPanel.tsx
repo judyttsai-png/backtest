@@ -26,9 +26,12 @@ const savePositions = (p: Position[]) => {
 };
 
 const supports = (dir: number, side: "long" | "short") => (side === "long" ? dir > 0 : dir < 0);
+const arrow = (d: number) => (d > 0 ? "▲" : d < 0 ? "▼" : "·");
+const dirWord = (d: number) => (d > 0 ? "long" : d < 0 ? "short" : "flat");
+const pnlFmt = (x: number | null) => (x == null ? "—" : `${x >= 0 ? "+" : ""}${x.toFixed(2)}%`);
 
-/** Open positions with a live per-model exit recommendation from the same
- *  /api/signals data. Position sizing / capital lives in the backtest, not here. */
+/** Open positions with a live P&L (from your entry price vs the latest price) and
+ *  a per-model exit recommendation, refreshed with the signals above. */
 export function PositionsPanel({ signals }: { signals?: SignalsResponse }) {
   const [positions, setPositions] = useState<Position[]>(loadPositions);
   const [symbol, setSymbol] = useState("");
@@ -55,14 +58,21 @@ export function PositionsPanel({ signals }: { signals?: SignalsResponse }) {
   };
   const remove = (id: string) => setPositions((ps) => ps.filter((p) => p.id !== id));
 
+  const computePnl = (p: Position): number | null => {
+    const e = parseFloat(p.entry);
+    const cur = byPair[p.symbol]?.price;
+    if (!isFinite(e) || e <= 0 || cur == null) return null;
+    return (p.side === "long" ? cur / e - 1 : e / cur - 1) * 100;
+  };
+
   return (
     <section className="panel" style={{ marginTop: 18 }}>
       <div className="phead">
         <span className="ptitle">My positions</span>
         <span className="psub">
           {positions.length
-            ? `${positions.length} open · live exit signals (↻ Refresh above to update)`
-            : "add a position to track exit signals"}
+            ? `${positions.length} open · P&L and exit signals refresh with ↻ above`
+            : "add a position (with entry price) to track live P&L and exit signals"}
         </span>
       </div>
 
@@ -85,10 +95,10 @@ export function PositionsPanel({ signals }: { signals?: SignalsResponse }) {
         </div>
         <input
           type="text"
-          placeholder="entry px (optional)"
+          placeholder="entry price"
           value={entry}
           onChange={(e) => setEntry(e.target.value)}
-          style={{ maxWidth: 160 }}
+          style={{ maxWidth: 140 }}
         />
         <button
           className="run secondary"
@@ -108,17 +118,21 @@ export function PositionsPanel({ signals }: { signals?: SignalsResponse }) {
                 <th>pair</th>
                 <th>side</th>
                 <th>entry</th>
+                <th>now</th>
+                <th>P&amp;L</th>
                 <th>recommendation</th>
-                <th>models (green = hold, red = exit)</th>
+                <th>models (▲long ▼short ·flat · green = agrees with you)</th>
                 <th></th>
               </tr>
             </thead>
             <tbody>
               {positions.map((p) => {
-                const sigs = byPair[p.symbol]?.signals ?? [];
+                const pair = byPair[p.symbol];
+                const sigs = pair?.signals ?? [];
                 const hold = sigs.filter((s) => supports(s.direction, p.side));
                 const exitVotes = sigs.filter((s) => !supports(s.direction, p.side));
                 const doExit = sigs.length > 0 && exitVotes.length > hold.length;
+                const pnl = computePnl(p);
                 return (
                   <tr key={p.id}>
                     <td>{p.symbol}</td>
@@ -126,12 +140,14 @@ export function PositionsPanel({ signals }: { signals?: SignalsResponse }) {
                       {p.side.toUpperCase()}
                     </td>
                     <td>{p.entry || "—"}</td>
+                    <td>{pair?.price ?? "—"}</td>
+                    <td className={pnl == null ? "" : pnl >= 0 ? "pos" : "neg"}>{pnlFmt(pnl)}</td>
                     <td className={sigs.length === 0 ? "" : doExit ? "side-short" : "side-long"}>
                       {sigs.length === 0
                         ? "not tracked"
                         : doExit
-                          ? `EXIT · ${exitVotes.length}/${sigs.length} say close`
-                          : `HOLD · ${hold.length}/${sigs.length} still support`}
+                          ? `EXIT · ${exitVotes.length}/${sigs.length} no longer ${p.side}`
+                          : `HOLD · ${hold.length}/${sigs.length} still ${p.side}`}
                     </td>
                     <td>
                       <div className="sigbadges">
@@ -139,9 +155,9 @@ export function PositionsPanel({ signals }: { signals?: SignalsResponse }) {
                           <span
                             key={s.model}
                             className={`sigbadge ${supports(s.direction, p.side) ? "sig-long" : "sig-short"}`}
-                            title={supports(s.direction, p.side) ? "still supports" : "recommends exit"}
+                            title={`${s.name}: now ${dirWord(s.direction)} — ${supports(s.direction, p.side) ? "agrees with your " + p.side : "against/neutral to your " + p.side}`}
                           >
-                            {s.model}
+                            {arrow(s.direction)} {s.model}
                           </span>
                         ))}
                       </div>

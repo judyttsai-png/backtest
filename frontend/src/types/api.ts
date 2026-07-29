@@ -132,6 +132,7 @@ export interface ModelSignal {
 
 export interface PairSignals {
   symbol: string;
+  price: number | null; // latest close, for live P&L
   consensus: { direction: number; long: number; short: number; flat: number; agree: number };
   signals: ModelSignal[];
 }
