@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUiStore } from "../../state/uiStore";
 import { getStrategies, postSignals } from "../../api/endpoints";
-import type { ModelSignal, PairSignals } from "../../types/api";
+import type { ModelSignal, PairSignals, Timeframe } from "../../types/api";
 import { PositionsPanel } from "./PositionsPanel";
 import { ModelSettings } from "./ModelSettings";
 import { fmtInstant, tzLabel } from "../../lib/time";
@@ -17,17 +17,32 @@ const fmtVal = (s: ModelSignal): string => {
   return `${s.value}`;
 };
 
+const BAR_SIZES: Timeframe[] = ["15m", "30m", "1h", "1d"];
+// auto-refresh cadence per bar size (ms): match the bar for intraday, hourly for daily.
+const REFRESH_MS: Record<string, number> = {
+  "15m": 15 * 60_000,
+  "30m": 30 * 60_000,
+  "1h": 60 * 60_000,
+  "1d": 60 * 60_000,
+};
+
 /** Live recommendation view: each pair's current call, the models backing it,
  *  the index value behind each vote, and a collapsible editor for every model
  *  variable. */
 export function SignalsPage() {
   const symbols = useUiStore((s) => s.symbols);
-  const timeframe = useUiStore((s) => s.timeframe);
+  const storeTf = useUiStore((s) => s.timeframe);
   const tzMinutes = useUiStore((s) => s.tzMinutes);
   const symbolList = symbols
     .split(",")
     .map((x) => x.trim().toUpperCase())
     .filter(Boolean);
+
+  // Signals-page bar size (independent of the backtest tab) + auto-refresh.
+  const [barSize, setBarSize] = useState<Timeframe>(
+    BAR_SIZES.includes(storeTf) ? storeTf : "1d",
+  );
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
   const strategiesQ = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
   const strategies = strategiesQ.data ?? [];
@@ -43,10 +58,11 @@ export function SignalsPage() {
       : undefined;
 
   const q = useQuery({
-    queryKey: ["signals", symbols, timeframe, JSON.stringify(overrides), strategies.length],
-    queryFn: () => postSignals({ symbols: symbolList, timeframe, models }),
+    queryKey: ["signals", symbols, barSize, JSON.stringify(overrides), strategies.length],
+    queryFn: () => postSignals({ symbols: symbolList, timeframe: barSize, models }),
     enabled: symbolList.length > 0,
     refetchOnWindowFocus: false,
+    refetchInterval: autoRefresh ? REFRESH_MS[barSize] : false,
   });
 
   return (
@@ -56,10 +72,28 @@ export function SignalsPage() {
           <span className="ptitle">Live recommendations</span>
           <span className="psub">
             {q.data
-              ? `${q.data.pairs.length} pairs · ${timeframe} · as of ${fmtInstant(q.data.asof, tzMinutes)} ${tzLabel(tzMinutes)}`
+              ? `${q.data.pairs.length} pairs · as of ${fmtInstant(q.data.asof, tzMinutes)} ${tzLabel(tzMinutes)}`
               : "computing…"}
           </span>
-          <span style={{ marginLeft: "auto" }}>
+          <span style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
+            <label className="sigctl">
+              bar
+              <select value={barSize} onChange={(e) => setBarSize(e.target.value as Timeframe)}>
+                {BAR_SIZES.map((b) => (
+                  <option key={b} value={b}>
+                    {b}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="sigctl" title={`refetch every ${REFRESH_MS[barSize] / 60000} min`}>
+              <input
+                type="checkbox"
+                checked={autoRefresh}
+                onChange={(e) => setAutoRefresh(e.target.checked)}
+              />
+              auto{autoRefresh ? ` · ${REFRESH_MS[barSize] / 60000}m` : ""}
+            </label>
             <button
               className="run secondary"
               style={{ width: "auto", padding: "9px 16px", margin: 0 }}

@@ -129,9 +129,11 @@ export function PositionsPanel({ signals }: { signals?: SignalsResponse }) {
               {positions.map((p) => {
                 const pair = byPair[p.symbol];
                 const sigs = pair?.signals ?? [];
-                const hold = sigs.filter((s) => supports(s.direction, p.side));
-                const exitVotes = sigs.filter((s) => !supports(s.direction, p.side));
-                const doExit = sigs.length > 0 && exitVotes.length > hold.length;
+                // Headline uses the SAME consensus as the recommendation card, so
+                // a pair can't say (e.g.) SHORT above yet not-EXIT here.
+                const cd = pair?.consensus.direction ?? 0;
+                const agree = p.side === "long" ? cd > 0 : cd < 0;
+                const opposite = p.side === "long" ? cd < 0 : cd > 0;
                 const pnl = computePnl(p);
                 return (
                   <tr key={p.id}>
@@ -142,12 +144,14 @@ export function PositionsPanel({ signals }: { signals?: SignalsResponse }) {
                     <td>{p.entry || "—"}</td>
                     <td>{pair?.price ?? "—"}</td>
                     <td className={pnl == null ? "" : pnl >= 0 ? "pos" : "neg"}>{pnlFmt(pnl)}</td>
-                    <td className={sigs.length === 0 ? "" : doExit ? "side-short" : "side-long"}>
+                    <td className={sigs.length === 0 ? "" : opposite ? "side-short" : agree ? "side-long" : ""}>
                       {sigs.length === 0
                         ? "not tracked"
-                        : doExit
-                          ? `EXIT · ${exitVotes.length}/${sigs.length} no longer ${p.side}`
-                          : `HOLD · ${hold.length}/${sigs.length} still ${p.side}`}
+                        : opposite
+                          ? `EXIT · consensus flipped ${dirWord(cd)}`
+                          : agree
+                            ? `HOLD · consensus ${p.side}`
+                            : "MIXED · no consensus"}
                     </td>
                     <td>
                       <div className="sigbadges">
