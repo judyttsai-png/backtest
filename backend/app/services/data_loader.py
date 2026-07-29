@@ -95,21 +95,30 @@ def build_bundle(
     benchmark_symbol: str | None = None,
     provider: str | None = None,
     auto_ingest: bool = True,
+    skip_missing: bool = False,
 ) -> CandleBundle:
     symbols = [normalize_symbol(s) for s in symbols]
     panels: dict[str, pd.DataFrame] = {}
     instrument_ids: dict[str, int] = {}
+    kept: list[str] = []
     for sym in symbols:
         inst, panel = _load_symbol(db, sym, timeframe, start, end, provider, auto_ingest)
         instrument_ids[sym] = inst.id
         if panel.empty:
+            # e.g. USDKRW/USDTWD on an intraday bar size (yfinance daily-only).
+            if skip_missing:
+                continue
             raise ValueError(f"no candles available for {sym} in the requested range")
         panels[sym] = panel
+        kept.append(sym)
+
+    if not kept:
+        raise ValueError("no candles available for any requested symbol")
 
     # Aligned close panel for portfolio strategies.
-    close_frames = {sym: panels[sym]["close"] for sym in symbols}
+    close_frames = {sym: panels[sym]["close"] for sym in kept}
     close_panel = pd.concat(close_frames, axis=1)
-    close_panel.columns = symbols
+    close_panel.columns = kept
     close_panel = close_panel.sort_index().ffill().dropna(how="any")
 
     benchmark = None
@@ -118,11 +127,11 @@ def build_bundle(
             db, benchmark_symbol, timeframe, start, end, provider, auto_ingest
         )
         if not bench_panel.empty:
-            benchmark = bench_panel.reindex(panels[symbols[0]].index).ffill()
+            benchmark = bench_panel.reindex(panels[kept[0]].index).ffill()
 
     return CandleBundle(
         timeframe=timeframe,
-        symbols=symbols,
+        symbols=kept,
         panels=panels,
         close_panel=close_panel,
         benchmark=benchmark,

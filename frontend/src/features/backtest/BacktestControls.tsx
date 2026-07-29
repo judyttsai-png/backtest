@@ -7,7 +7,9 @@ import { ApiError } from "../../api/client";
 import { MODEL_INFO } from "../../lib/modelInfo";
 
 const MODEL_MARKS: Record<string, string> = { velacc: "∂", sma: "×", roc: "%", dmi: "±", velcross: "∿" };
-const TIMEFRAMES = ["1d", "1h", "30m", "15m", "5m", "1m"] as const;
+// 5m/1m removed: parquet's finest bar is 15-min and yfinance intraday FX is
+// unreliable, so nothing can serve them.
+const TIMEFRAMES = ["1d", "1h", "30m", "15m"] as const;
 
 interface Props {
   strategies: StrategyMeta[];

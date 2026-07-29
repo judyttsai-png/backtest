@@ -75,10 +75,13 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
             raise HTTPException(status_code=422, detail=f"unknown strategy '{m.id}'")
 
     try:
-        bundle = build_bundle(db, symbols, req.timeframe, start, end)
+        bundle = build_bundle(db, symbols, req.timeframe, start, end, skip_missing=True)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
+    # only pairs that actually have data for this bar size (e.g. USDKRW/USDTWD
+    # drop out on intraday since they're yfinance-daily only)
+    symbols = list(bundle.symbols)
     # per-symbol accumulation of each model's latest signal
     acc: dict[str, list[dict]] = {s: [] for s in symbols}
 

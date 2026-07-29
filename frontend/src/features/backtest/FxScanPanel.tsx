@@ -8,6 +8,7 @@ import type { Metrics } from "../../types/api";
 const FX_PAIRS = [
   "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD", "EURGBP",
   "EURJPY", "GBPJPY", "EURCHF", "AUDJPY", "EURAUD", "CADJPY", "CHFJPY", "NZDJPY",
+  "USDKRW", "USDTWD", // yfinance-only, daily — skipped on intraday bar sizes
 ];
 
 type SortKey = "total_return" | "sharpe" | "max_drawdown";
@@ -48,9 +49,9 @@ export function FxScanPanel() {
     setRows([]);
     setProgress(0);
     const acc: Row[] = [];
-    try {
-      for (let i = 0; i < FX_PAIRS.length; i++) {
-        const pair = FX_PAIRS[i];
+    for (let i = 0; i < FX_PAIRS.length; i++) {
+      const pair = FX_PAIRS[i];
+      try {
         const res = await createBacktest({
           strategy_model_id: store.strategyId,
           parameters: store.params,
@@ -69,13 +70,13 @@ export function FxScanPanel() {
         const metrics = await getMetrics(res.run_id);
         acc.push({ pair, runId: res.run_id, metrics });
         setRows([...acc]);
-        setProgress(i + 1);
+      } catch {
+        // a pair with no data for this bar size (e.g. USDKRW intraday) is skipped
+        // rather than aborting the whole scan.
       }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setRunning(false);
+      setProgress(i + 1);
     }
+    setRunning(false);
   };
 
   // Descending: best return/sharpe first; for drawdown, least-negative first.
@@ -92,10 +93,10 @@ export function FxScanPanel() {
   return (
     <section className="panel">
       <div className="phead">
-        <span className="ptitle">FX scan · 16 pairs</span>
+        <span className="ptitle">FX scan · {FX_PAIRS.length} pairs</span>
         <span className="psub">
           {store.strategyId.toUpperCase()} ·{" "}
-          {running ? `scanning ${progress}/16…` : rows.length ? `${rows.length} pairs ranked` : "run to rank all pairs"}
+          {running ? `scanning ${progress}/${FX_PAIRS.length}…` : rows.length ? `${rows.length} pairs ranked` : "run to rank all pairs"}
         </span>
         <span style={{ marginLeft: "auto" }}>
           <button
@@ -104,7 +105,7 @@ export function FxScanPanel() {
             onClick={runScan}
             disabled={running}
           >
-            {running ? "SCANNING…" : "▶ SCAN 16 PAIRS"}
+            {running ? "SCANNING…" : `▶ SCAN ${FX_PAIRS.length} PAIRS`}
           </button>
         </span>
       </div>
