@@ -52,25 +52,28 @@ def _normalize(symbol: str) -> str:
 _RESAMPLE_RULE = {"15m": "15min", "30m": "30min", "1h": "1h", "1d": "1D"}
 
 
-def _fetch_live_tail(
-    symbol: str, timeframe: str, after: datetime, end: datetime
-) -> pd.DataFrame:
-    """Recent bars strictly after ``after`` from yfinance, to extend the parquet
-    past its last timestamp. Daily only for v1 (yfinance intraday FX history is
-    short/spotty). Fully guarded — any failure returns empty so the backtest
-    still runs on the parquet history alone."""
+def _fetch_yf(symbol: str, timeframe: str, start: datetime, end: datetime) -> pd.DataFrame:
+    """Daily FX bars from yfinance (ticker form e.g. USDKRW=X). Daily only —
+    yfinance intraday FX history is short/spotty. Guarded: any failure => empty."""
     if timeframe != "1d":
         return pd.DataFrame(columns=CANDLE_COLUMNS)
     try:
         from app.services.providers.yfinance_provider import YFinanceProvider
 
-        yf_symbol = _normalize(symbol) + "=X"  # FX ticker form, e.g. EURUSD=X
-        df = YFinanceProvider().fetch_daily(yf_symbol, after, end)
-        if df.empty:
-            return df
-        return df.loc[df.index > _as_utc(after)]  # strictly newer than the parquet
+        return YFinanceProvider().fetch_daily(_normalize(symbol) + "=X", start, end)
     except Exception:
         return pd.DataFrame(columns=CANDLE_COLUMNS)
+
+
+def _fetch_live_tail(
+    symbol: str, timeframe: str, after: datetime, end: datetime
+) -> pd.DataFrame:
+    """Recent bars strictly after ``after`` (to extend a parquet pair past its
+    last timestamp)."""
+    df = _fetch_yf(symbol, timeframe, after, end)
+    if df.empty:
+        return df
+    return df.loc[df.index > _as_utc(after)]
 
 
 class ParquetProvider(DataProvider):
@@ -91,7 +94,9 @@ class ParquetProvider(DataProvider):
         panel = _load_panel(path)
         col = _normalize(symbol)
         if col not in panel.columns:
-            return pd.DataFrame(columns=CANDLE_COLUMNS)
+            # Pair isn't in the parquet (e.g. USDKRW / USDINR / USDTWD) — serve it
+            # from yfinance (daily). Lets you add pairs beyond the 16 in the file.
+            return _fetch_yf(symbol, timeframe, start, end)
 
         s = panel[col].dropna()
         s = s.loc[(s.index >= _as_utc(start)) & (s.index <= _as_utc(end))]
