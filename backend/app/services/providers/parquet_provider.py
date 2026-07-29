@@ -53,14 +53,13 @@ _RESAMPLE_RULE = {"15m": "15min", "30m": "30min", "1h": "1h", "1d": "1D"}
 
 
 def _fetch_yf(symbol: str, timeframe: str, start: datetime, end: datetime) -> pd.DataFrame:
-    """Daily FX bars from yfinance (ticker form e.g. USDKRW=X). Daily only —
-    yfinance intraday FX history is short/spotty. Guarded: any failure => empty."""
-    if timeframe != "1d":
-        return pd.DataFrame(columns=CANDLE_COLUMNS)
+    """FX bars from yfinance (ticker form e.g. USDKRW=X). Supports daily and
+    intraday (15m/30m/1h — intraday limited to yfinance's ~60-day window).
+    Guarded: any failure => empty so the backtest still runs."""
     try:
         from app.services.providers.yfinance_provider import YFinanceProvider
 
-        return YFinanceProvider().fetch_daily(_normalize(symbol) + "=X", start, end)
+        return YFinanceProvider().fetch(_normalize(symbol) + "=X", timeframe, start, end)
     except Exception:
         return pd.DataFrame(columns=CANDLE_COLUMNS)
 

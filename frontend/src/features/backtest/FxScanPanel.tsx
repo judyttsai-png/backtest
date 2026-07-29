@@ -8,7 +8,7 @@ import type { Metrics } from "../../types/api";
 const FX_PAIRS = [
   "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD", "EURGBP",
   "EURJPY", "GBPJPY", "EURCHF", "AUDJPY", "EURAUD", "CADJPY", "CHFJPY", "NZDJPY",
-  "USDKRW", "USDTWD", "USDBRL", "USDMXN", // yfinance-only, daily — skipped on intraday
+  "USDKRW", "USDTWD", "USDBRL", "USDMXN", // yfinance (daily + intraday, ~60-day intraday window)
 ];
 
 type SortKey = "total_return" | "sharpe" | "max_drawdown";
