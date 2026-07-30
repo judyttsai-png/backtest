@@ -47,10 +47,10 @@ export function SignalsPage() {
   const strategiesQ = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
   const strategies = strategiesQ.data ?? [];
 
-  // Per-model parameter overrides (empty = use each model's defaults).
-  const [overrides, setOverrides] = useState<Record<string, Record<string, number>>>({});
-  const setOverride = (modelId: string, paramId: string, value: number) =>
-    setOverrides((o) => ({ ...o, [modelId]: { ...(o[modelId] || {}), [paramId]: value } }));
+  // Per-model parameter overrides — stored so they survive tab switches / reloads.
+  const overrides = useUiStore((s) => s.signalOverrides);
+  const setOverride = useUiStore((s) => s.setSignalOverride);
+  const resetOverrides = useUiStore((s) => s.resetSignalOverrides);
 
   const models =
     strategies.length > 0
@@ -109,7 +109,7 @@ export function SignalsPage() {
           strategies={strategies}
           overrides={overrides}
           onChange={setOverride}
-          onReset={() => setOverrides({})}
+          onReset={resetOverrides}
         />
 
         <div className="hint" style={{ marginBottom: 14 }}>

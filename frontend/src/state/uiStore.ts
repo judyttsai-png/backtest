@@ -24,6 +24,9 @@ interface UiState {
   tab: Tab;
   tzMinutes: number; // display timezone offset from UTC, in minutes
 
+  // Signals-tab per-model parameter overrides (persist across tab switches/reloads).
+  signalOverrides: Record<string, Record<string, number>>;
+
   activeRunId: string | null;
   activeSweepId: string | null;
 
@@ -31,6 +34,8 @@ interface UiState {
   setParam: (id: string, value: number) => void;
   set: <K extends keyof UiState>(key: K, value: UiState[K]) => void;
   toggleTheme: () => void;
+  setSignalOverride: (modelId: string, paramId: string, value: number) => void;
+  resetSignalOverrides: () => void;
   setActiveRunId: (id: string | null) => void;
   setActiveSweepId: (id: string | null) => void;
 }
@@ -62,6 +67,22 @@ function initialTz(): number {
   return 0;
 }
 
+const OVERRIDES_KEY = "backtest-signal-overrides";
+function initialOverrides(): Record<string, Record<string, number>> {
+  try {
+    return JSON.parse(localStorage.getItem(OVERRIDES_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+function saveOverrides(o: Record<string, Record<string, number>>): void {
+  try {
+    localStorage.setItem(OVERRIDES_KEY, JSON.stringify(o));
+  } catch {
+    /* localStorage unavailable */
+  }
+}
+
 export const useUiStore = create<UiState>((set) => ({
   strategyId: "sma",
   params: { fast: 10, slow: 40 },
@@ -81,6 +102,7 @@ export const useUiStore = create<UiState>((set) => ({
   theme: initialTheme(),
   tab: "backtest",
   tzMinutes: initialTz(),
+  signalOverrides: initialOverrides(),
 
   activeRunId: null,
   activeSweepId: null,
@@ -102,6 +124,17 @@ export const useUiStore = create<UiState>((set) => ({
         /* localStorage unavailable */
       }
       return { theme };
+    }),
+  setSignalOverride: (modelId, paramId, value) =>
+    set((s) => {
+      const next = { ...s.signalOverrides, [modelId]: { ...(s.signalOverrides[modelId] || {}), [paramId]: value } };
+      saveOverrides(next);
+      return { signalOverrides: next };
+    }),
+  resetSignalOverrides: () =>
+    set(() => {
+      saveOverrides({});
+      return { signalOverrides: {} };
     }),
   setActiveRunId: (id) => set(() => ({ activeRunId: id })),
   setActiveSweepId: (id) => set(() => ({ activeSweepId: id })),
