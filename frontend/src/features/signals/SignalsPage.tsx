@@ -52,13 +52,25 @@ export function SignalsPage() {
   const setOverride = useUiStore((s) => s.setSignalOverride);
   const resetOverrides = useUiStore((s) => s.resetSignalOverrides);
 
+  // Which strategies to include ([] in store = all).
+  const signalModels = useUiStore((s) => s.signalModels);
+  const setSignalModels = useUiStore((s) => s.setSignalModels);
+  const allIds = strategies.map((m) => m.id);
+  const selected = signalModels.length ? signalModels.filter((id) => allIds.includes(id)) : allIds;
+  const toggleModel = (id: string) => {
+    const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
+    if (next.length > 0) setSignalModels(next); // always keep at least one
+  };
+
   const models =
     strategies.length > 0
-      ? strategies.map((m) => ({ id: m.id, parameters: overrides[m.id] || {} }))
+      ? strategies
+          .filter((m) => selected.includes(m.id))
+          .map((m) => ({ id: m.id, parameters: overrides[m.id] || {} }))
       : undefined;
 
   const q = useQuery({
-    queryKey: ["signals", symbols, barSize, JSON.stringify(overrides), strategies.length],
+    queryKey: ["signals", symbols, barSize, JSON.stringify(overrides), selected.join(","), strategies.length],
     queryFn: () => postSignals({ symbols: symbolList, timeframe: barSize, models }),
     enabled: symbolList.length > 0,
     refetchOnWindowFocus: false,
@@ -104,6 +116,23 @@ export function SignalsPage() {
             </button>
           </span>
         </div>
+
+        {strategies.length > 0 && (
+          <div className="stratpick">
+            <span className="thlabel">strategies</span>
+            {strategies.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className={`stratchip ${selected.includes(m.id) ? "on" : ""}`}
+                onClick={() => toggleModel(m.id)}
+                title={selected.includes(m.id) ? "included — click to exclude" : "excluded — click to include"}
+              >
+                {m.name}
+              </button>
+            ))}
+          </div>
+        )}
 
         <ModelSettings
           strategies={strategies}

@@ -844,6 +844,38 @@ tr:hover td {
   outline: none;
 }
 
+/* strategy include/exclude chips (signals page) */
+.stratpick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.stratchip {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  color: var(--mute);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 11px;
+  cursor: pointer;
+  transition: 0.12s;
+  opacity: 0.55;
+}
+.stratchip:hover {
+  border-color: var(--mute2);
+}
+.stratchip.on {
+  color: var(--onaccent);
+  background: var(--amber);
+  border-color: var(--amber);
+  font-weight: 700;
+  opacity: 1;
+}
+
 /* collapsible model settings (edit every variable) */
 .modelsettings {
   margin-bottom: 12px;

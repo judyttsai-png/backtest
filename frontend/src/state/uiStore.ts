@@ -26,6 +26,8 @@ interface UiState {
 
   // Signals-tab per-model parameter overrides (persist across tab switches/reloads).
   signalOverrides: Record<string, Record<string, number>>;
+  // Which strategies the Signals tab includes ([] = all). Persisted.
+  signalModels: string[];
 
   activeRunId: string | null;
   activeSweepId: string | null;
@@ -36,6 +38,7 @@ interface UiState {
   toggleTheme: () => void;
   setSignalOverride: (modelId: string, paramId: string, value: number) => void;
   resetSignalOverrides: () => void;
+  setSignalModels: (ids: string[]) => void;
   setActiveRunId: (id: string | null) => void;
   setActiveSweepId: (id: string | null) => void;
 }
@@ -83,6 +86,16 @@ function saveOverrides(o: Record<string, Record<string, number>>): void {
   }
 }
 
+const MODELS_KEY = "backtest-signal-models";
+function initialSignalModels(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(MODELS_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
+  }
+}
+
 export const useUiStore = create<UiState>((set) => ({
   strategyId: "sma",
   params: { fast: 10, slow: 40 },
@@ -103,6 +116,7 @@ export const useUiStore = create<UiState>((set) => ({
   tab: "backtest",
   tzMinutes: initialTz(),
   signalOverrides: initialOverrides(),
+  signalModels: initialSignalModels(),
 
   activeRunId: null,
   activeSweepId: null,
@@ -135,6 +149,15 @@ export const useUiStore = create<UiState>((set) => ({
     set(() => {
       saveOverrides({});
       return { signalOverrides: {} };
+    }),
+  setSignalModels: (ids) =>
+    set(() => {
+      try {
+        localStorage.setItem(MODELS_KEY, JSON.stringify(ids));
+      } catch {
+        /* localStorage unavailable */
+      }
+      return { signalModels: ids };
     }),
   setActiveRunId: (id) => set(() => ({ activeRunId: id })),
   setActiveSweepId: (id) => set(() => ({ activeSweepId: id })),
