@@ -49,8 +49,6 @@ def _reading(model_id: str, sig, params: dict) -> tuple[float | None, str, float
     try:
         if model_id == "dmi":
             return _nan_to_none(round(float(sig["adx"].iloc[-1]), 1)), "ADX", float(params.get("adx_floor", 0))
-        if model_id == "roc":
-            return _nan_to_none(round(float(sig["roc"].iloc[-1]) * 100, 3)), "%", float(params.get("thr", 0))
         if model_id == "sma":
             f, s = float(sig["fast_sma"].iloc[-1]), float(sig["slow_sma"].iloc[-1])
             spread = (f / s - 1) * 100 if s else float("nan")

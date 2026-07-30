@@ -16,9 +16,13 @@ interface UiState {
   costBps: number;
   slippageBps: number;
   initialCapital: number;
-  allocation: "all_in" | "equal";
+  allocation: "all_in" | "equal" | "mvskew";
   topupPct: number;
   trimPct: number;
+  // Mean-Variance-Skewness sizing knobs (allocation === "mvskew").
+  mvsLambda: number; // variance aversion
+  mvsGamma: number; // skewness preference
+  mvsMaxWeight: number; // per-pair cap (fraction, e.g. 0.20)
 
   theme: Theme;
   tab: Tab;
@@ -111,6 +115,9 @@ export const useUiStore = create<UiState>((set) => ({
   allocation: "all_in",
   topupPct: 0,
   trimPct: 0,
+  mvsLambda: 3,
+  mvsGamma: 3,
+  mvsMaxWeight: 0.2,
 
   theme: initialTheme(),
   tab: "backtest",

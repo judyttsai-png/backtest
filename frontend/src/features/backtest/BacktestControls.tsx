@@ -6,7 +6,7 @@ import type { BacktestRequest, StrategyMeta } from "../../types/api";
 import { ApiError } from "../../api/client";
 import { MODEL_INFO } from "../../lib/modelInfo";
 
-const MODEL_MARKS: Record<string, string> = { velacc: "∂", sma: "×", roc: "%", dmi: "±", velcross: "∿" };
+const MODEL_MARKS: Record<string, string> = { sma: "×", dmi: "±", velcross: "∿" };
 // 5m/1m removed: parquet's finest bar is 15-min and yfinance intraday FX is
 // unreliable, so nothing can serve them.
 const TIMEFRAMES = ["1d", "1h", "30m", "15m"] as const;
@@ -60,6 +60,9 @@ export function BacktestControls({ strategies }: Props) {
         allocation: s.allocation,
         topup_pct: s.topupPct,
         trim_pct: s.trimPct,
+        mvs_lambda: s.mvsLambda,
+        mvs_gamma: s.mvsGamma,
+        mvs_max_weight: s.mvsMaxWeight,
       },
     };
     mutation.mutate(req);
@@ -231,35 +234,86 @@ export function BacktestControls({ strategies }: Props) {
           <label>initial allocation</label>
           <select
             value={s.allocation}
-            onChange={(e) => s.set("allocation", e.target.value as "all_in" | "equal")}
+            onChange={(e) => s.set("allocation", e.target.value as "all_in" | "equal" | "mvskew")}
           >
             <option value="all_in">All-in (full capital)</option>
             <option value="equal">Equal distribution (split across names)</option>
+            <option value="mvskew">Mean-Variance-Skewness (optimized weights)</option>
           </select>
-          <div className="hint">how the initial capital is deployed across the universe</div>
+          <div className="hint">
+            {s.allocation === "mvskew"
+              ? "your MVS optimizer sizes each pair: max(w·μ − λ·wΣw + γ·skew), long-only weights, monthly rebalance"
+              : "how the initial capital is deployed across the universe"}
+          </div>
         </div>
 
-        <div className="axisrow">
-          <div className="field">
-            <label>add / top-up (%)</label>
-            <input
-              type="number"
-              value={s.topupPct}
-              onChange={(e) => s.set("topupPct", Number(e.target.value) || 0)}
-            />
-          </div>
-          <div className="field">
-            <label>reduce / trim (%)</label>
-            <input
-              type="number"
-              value={s.trimPct}
-              onChange={(e) => s.set("trimPct", Number(e.target.value) || 0)}
-            />
-          </div>
-        </div>
-        <div className="hint" style={{ marginTop: -6 }}>
-          Allocation is applied; top-up / trim are captured with the run (sizing engine WIP).
-        </div>
+        {s.allocation === "mvskew" ? (
+          <>
+            <div className="axisrow">
+              <div className="field">
+                <label>λ variance aversion</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={s.mvsLambda}
+                  onChange={(e) => s.set("mvsLambda", Number(e.target.value) || 0)}
+                />
+              </div>
+              <div className="field">
+                <label>γ skew preference</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  value={s.mvsGamma}
+                  onChange={(e) => s.set("mvsGamma", Number(e.target.value) || 0)}
+                />
+              </div>
+              <div className="field">
+                <label>per-pair cap (%)</label>
+                <input
+                  type="number"
+                  step="5"
+                  min="0"
+                  max="100"
+                  value={Math.round(s.mvsMaxWeight * 100)}
+                  onChange={(e) =>
+                    s.set("mvsMaxWeight", Math.min(100, Math.max(0, Number(e.target.value) || 0)) / 100)
+                  }
+                />
+              </div>
+            </div>
+            <div className="hint" style={{ marginTop: -6 }}>
+              Higher λ → punishes volatile pairs; higher γ → tilts toward positively-skewed pairs. The
+              strategy picks direction; MVS picks size. Defaults λ=3, γ=3, cap 20% (your original).
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="axisrow">
+              <div className="field">
+                <label>add / top-up (%)</label>
+                <input
+                  type="number"
+                  value={s.topupPct}
+                  onChange={(e) => s.set("topupPct", Number(e.target.value) || 0)}
+                />
+              </div>
+              <div className="field">
+                <label>reduce / trim (%)</label>
+                <input
+                  type="number"
+                  value={s.trimPct}
+                  onChange={(e) => s.set("trimPct", Number(e.target.value) || 0)}
+                />
+              </div>
+            </div>
+            <div className="hint" style={{ marginTop: -6 }}>
+              Allocation is applied; top-up / trim are captured with the run (sizing engine WIP).
+            </div>
+          </>
+        )}
       </div>
 
       <button className="run" onClick={runBacktest} disabled={mutation.isPending}>

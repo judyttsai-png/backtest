@@ -36,6 +36,15 @@ class ExecutionConfig(BaseModel):
     cost_bps: float = 5.0
     slippage_bps: float = 0.0
     initial_capital: float = 100_000.0
+    allocation: Literal["all_in", "equal", "mvskew"] = "all_in"
+    topup_pct: float = 0.0
+    trim_pct: float = 0.0
+    # Mean-Variance-Skewness sizing knobs (allocation == "mvskew").
+    mvs_lambda: float = 3.0
+    mvs_gamma: float = 3.0
+    mvs_max_weight: float = 0.20
+    mvs_lookback: int = 252
+    mvs_rebalance: int = 21
 
 
 class BacktestRequest(BaseModel):

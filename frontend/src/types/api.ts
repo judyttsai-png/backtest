@@ -25,9 +25,12 @@ export interface ExecutionConfig {
   cost_bps: number;
   slippage_bps: number;
   initial_capital: number;
-  allocation?: "all_in" | "equal";
+  allocation?: "all_in" | "equal" | "mvskew";
   topup_pct?: number;
   trim_pct?: number;
+  mvs_lambda?: number;
+  mvs_gamma?: number;
+  mvs_max_weight?: number;
 }
 
 export interface BacktestRequest {

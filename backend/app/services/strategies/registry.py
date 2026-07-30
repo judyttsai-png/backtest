@@ -3,15 +3,15 @@ from __future__ import annotations
 
 from app.services.strategies.base import Strategy
 from app.services.strategies.dmi import DmiTrendStrategy
-from app.services.strategies.roc import RocMomentumStrategy
 from app.services.strategies.sma import SmaCrossoverStrategy
-from app.services.strategies.velacc import VelocityAccelerationStrategy
 from app.services.strategies.velcross import VelocityCrossoverStrategy
 
+# Deliberately kept small and *distinct*: SMA divergence (mean-reversion-ish
+# crossover), ADX/DMI (trend strength), and velocity crossover (momentum). The
+# old ROC and velocity-acceleration models were dropped for being too correlated
+# with velocity crossover — see registry history.
 STRATEGY_REGISTRY: dict[str, Strategy] = {
     "sma": SmaCrossoverStrategy(),
-    "roc": RocMomentumStrategy(),
-    "velacc": VelocityAccelerationStrategy(),
     "dmi": DmiTrendStrategy(),
     "velcross": VelocityCrossoverStrategy(),
 }

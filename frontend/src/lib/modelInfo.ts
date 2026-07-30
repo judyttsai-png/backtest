@@ -7,18 +7,6 @@ export const MODEL_INFO: Record<string, string[]> = {
     "Strength = how far fast sits above/below slow (%).",
     "Lags by design; whipsaws in sideways markets.",
   ],
-  roc: [
-    "Momentum via rate-of-change: the N-bar % return of price (e.g. 20 bars).",
-    "Long when that return exceeds +threshold; short below −threshold; flat inside the band.",
-    "The threshold sets how big a move has to be to count as a signal.",
-    "Fast to react, but noisy if the threshold is too small.",
-  ],
-  velacc: [
-    "Velocity = slope of a quadratic fit to log-price (how fast it's moving); acceleration = curvature.",
-    "Cross-sectional: ranks the whole universe, longs the fastest risers, shorts the fastest fallers.",
-    "Only trades names past the velocity / acceleration thresholds.",
-    "A pair's call depends on how it ranks against the others, not just its own chart.",
-  ],
   dmi: [
     "Wilder's Directional Movement: +DI / −DI measure up- vs down-pressure from the bar's range.",
     "ADX measures trend strength (direction-agnostic).",

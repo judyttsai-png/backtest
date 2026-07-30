@@ -68,9 +68,15 @@ class ExecutionConfig:
     cost_bps: float = 5.0
     slippage_bps: float = 0.0
     initial_capital: float = 100_000.0
-    allocation: str = "all_in"  # "all_in" | "equal" (equal-weight the book)
+    allocation: str = "all_in"  # "all_in" | "equal" | "mvskew"
     topup_pct: float = 0.0  # captured with the run; sizing engine WIP
     trim_pct: float = 0.0
+    # Mean-Variance-Skewness sizing knobs (allocation == "mvskew").
+    mvs_lambda: float = 3.0  # variance aversion
+    mvs_gamma: float = 3.0  # skewness preference
+    mvs_max_weight: float = 0.20  # per-pair cap
+    mvs_lookback: int = 252  # trailing bars for the moment estimates
+    mvs_rebalance: int = 21  # re-optimize every N bars, hold in between
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> "ExecutionConfig":
@@ -82,6 +88,11 @@ class ExecutionConfig:
             allocation=d.get("allocation", "all_in"),
             topup_pct=float(d.get("topup_pct", 0.0)),
             trim_pct=float(d.get("trim_pct", 0.0)),
+            mvs_lambda=float(d.get("mvs_lambda", 3.0)),
+            mvs_gamma=float(d.get("mvs_gamma", 3.0)),
+            mvs_max_weight=float(d.get("mvs_max_weight", 0.20)),
+            mvs_lookback=int(d.get("mvs_lookback", 252)),
+            mvs_rebalance=int(d.get("mvs_rebalance", 21)),
         )
 
     @property
@@ -246,6 +257,22 @@ def _run_portfolio(strategy, params, candles, exec_cfg: ExecutionConfig) -> Back
         # bar), overriding the strategy's own sizing, keeping the long/short sign.
         n_held = (weights != 0).sum(axis=1).replace(0, np.nan)
         weights = np.sign(weights).mul(1.0 / n_held, axis=0).fillna(0.0)
+    elif exec_cfg.allocation == "mvskew":
+        # Mean-Variance-Skewness sizing: keep the strategy's per-pair direction,
+        # replace its magnitude with the user's own MVS optimizer.
+        from app.services.metrics import ANNUALIZATION
+        from app.services.portfolio_opt import mvskew_allocate
+
+        weights = mvskew_allocate(
+            weights,
+            close_panel,
+            ann=ANNUALIZATION.get(candles.timeframe, 252.0),
+            lam=exec_cfg.mvs_lambda,
+            gamma=exec_cfg.mvs_gamma,
+            max_weight=exec_cfg.mvs_max_weight,
+            lookback=exec_cfg.mvs_lookback,
+            rebalance=exec_cfg.mvs_rebalance,
+        )
 
     applied = weights.shift(1).fillna(0.0)  # anti-lookahead
     asset_returns = close_panel.pct_change().fillna(0.0)
