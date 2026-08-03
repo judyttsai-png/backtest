@@ -7,6 +7,13 @@ export const MODEL_INFO: Record<string, string[]> = {
     "Strength = how far fast sits above/below slow (%).",
     "Lags by design; whipsaws in sideways markets.",
   ],
+  meanrev: [
+    "Short-horizon reversal: fade the prior move — long after a down bar, short after an up bar.",
+    "Target = −sign of the last `lookback`-bar return (lookback=1 = fade yesterday).",
+    "Deadzone (bps) ignores tiny moves so you're not always flipping on noise.",
+    "Always in the market and flips often — it churns, so cost/spread matters most here.",
+    "The edge is real but tiny per trade; check net-of-cost equity and validate out-of-sample.",
+  ],
   dmi: [
     "Wilder's Directional Movement: +DI / −DI measure up- vs down-pressure from the bar's range.",
     "ADX measures trend strength (direction-agnostic).",
