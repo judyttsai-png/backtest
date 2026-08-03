@@ -10,6 +10,7 @@ import {
 } from "../../api/endpoints";
 import { MetricsGrid } from "./MetricsGrid";
 import { FxScanPanel } from "./FxScanPanel";
+import { WalkForwardPanel } from "./WalkForwardPanel";
 import { PriceChart } from "../../components/charts/PriceChart";
 import { DmiChart } from "../../components/charts/DmiChart";
 import { SmaChart } from "../../components/charts/SmaChart";
@@ -66,6 +67,7 @@ export function BacktestResults() {
   return (
     <>
       {showScan && <FxScanPanel />}
+      <WalkForwardPanel />
 
       {!runId && (
         <div className="banner">

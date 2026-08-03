@@ -16,6 +16,8 @@ import type {
   SweepRequest,
   SweepStatus,
   TradesResponse,
+  WalkForwardRequest,
+  WalkForwardResponse,
 } from "../types/api";
 
 // strategies
@@ -38,6 +40,10 @@ export const getTrades = (id: string, limit: number, offset: number) =>
 // signals (live recommendations)
 export const postSignals = (req: SignalsRequest) =>
   api.post<SignalsResponse>("/api/signals", req);
+
+// walk-forward (rolling out-of-sample stability)
+export const postWalkForward = (req: WalkForwardRequest) =>
+  api.post<WalkForwardResponse>("/api/walkforward", req);
 
 // data
 export const getCoverage = (symbol: string, timeframe = "1d") =>

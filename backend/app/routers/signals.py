@@ -54,7 +54,7 @@ def _reading(model_id: str, sig, params: dict) -> tuple[float | None, str, float
             spread = (f / s - 1) * 100 if s else float("nan")
             return _nan_to_none(round(spread, 3)), "% fast vs slow", 0.0
         if model_id == "meanrev":
-            return _nan_to_none(round(float(sig["prior_return_pct"].iloc[-1]), 3)), "% prior move", 0.0
+            return _nan_to_none(round(float(sig["z"].iloc[-1]), 2)), "σ move", float(params.get("z_full", 0))
     except Exception:
         pass
     return None, "", None

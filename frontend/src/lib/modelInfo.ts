@@ -8,11 +8,12 @@ export const MODEL_INFO: Record<string, string[]> = {
     "Lags by design; whipsaws in sideways markets.",
   ],
   meanrev: [
-    "Short-horizon reversal: fade the prior move — long after a down bar, short after an up bar.",
-    "Target = −sign of the last `lookback`-bar return (lookback=1 = fade yesterday).",
-    "Deadzone (bps) ignores tiny moves so you're not always flipping on noise.",
-    "Always in the market and flips often — it churns, so cost/spread matters most here.",
-    "The edge is real but tiny per trade; check net-of-cost equity and validate out-of-sample.",
+    "Short-horizon reversal: fade the prior move — long after a down move, short after an up move.",
+    "Sized by magnitude: z = the last `lookback`-bar return in standard deviations (vol-window σ).",
+    "Target = −clip(z / z_full, −1, +1): a big, unusual move gets a big fade; a small wobble a small one.",
+    "z_full sets how extreme a move earns full size; smaller ≈ the old on/off ±1 behavior.",
+    "Sizing by z also cuts churn (small moves → small positions) — but still check net-of-cost equity.",
+    "The edge is real but tiny per trade; validate out-of-sample (it survives mainly on daily range-bound pairs).",
   ],
   dmi: [
     "Wilder's Directional Movement: +DI / −DI measure up- vs down-pressure from the bar's range.",

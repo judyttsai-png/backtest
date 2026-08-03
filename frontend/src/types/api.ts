@@ -216,3 +216,35 @@ export interface Coverage {
   start: string | null;
   end: string | null;
 }
+
+export interface WalkForwardFold {
+  fold: number;
+  start: string;
+  end: string;
+  total_return?: number;
+  sharpe?: number;
+  max_drawdown?: number;
+  win_rate?: number;
+  error?: string;
+}
+
+export interface WalkForwardResponse {
+  strategy_model_id: string;
+  symbols: string[];
+  timeframe: string;
+  summary: {
+    folds_scored: number;
+    folds_positive: number;
+    consistency: number | null;
+    mean_sharpe: number | null;
+    std_sharpe: number | null;
+    min_sharpe: number | null;
+    worst_return: number | null;
+    best_return: number | null;
+  };
+  folds: WalkForwardFold[];
+}
+
+export interface WalkForwardRequest extends BacktestRequest {
+  folds: number;
+}
