@@ -22,6 +22,9 @@ Why size by z instead of a flat ±1:
 Knobs:
   lookback   bars of prior return to fade (1 = the original notebook).
   vol_window rolling window for the σ used to standardize the move.
+  z_enter    deadzone: stay flat until |z| exceeds this, so the model is NOT in
+             a trade every bar. Reverting back inside the band closes the trade.
+             0 = always in the market (the old behavior).
   z_full     the z-score at which the position reaches full size (±1). Smaller
              saturates fast (≈ the old binary sign); larger = more graded.
 """
@@ -47,6 +50,7 @@ class MeanReversionStrategy(Strategy):
     parameter_specs = [
         ParamSpec("lookback", "fade window (bars)", "int", min=1, max=60, default=1),
         ParamSpec("vol_window", "volatility window (bars)", "int", min=5, max=250, default=20),
+        ParamSpec("z_enter", "z-score to enter (deadzone)", "float", min=0, max=5, default=0.5, step=0.25),
         ParamSpec("z_full", "z-score for full size", "float", min=0.25, max=5, default=1.5, step=0.25),
     ]
 
@@ -54,22 +58,29 @@ class MeanReversionStrategy(Strategy):
         clean = super().validate_parameters(params)
         if clean["z_full"] <= 0:
             raise ParameterError("z_full must be > 0")
+        if clean["z_enter"] > clean["z_full"]:
+            raise ParameterError("z_enter must be <= z_full")
         return clean
 
     def generate_signals(self, data: pd.DataFrame, params: dict[str, Any]) -> pd.DataFrame:
         close = data["close"].astype(float)
         lookback = int(params["lookback"])
         vol_window = int(params["vol_window"])
+        z_enter = float(params["z_enter"])
         z_full = float(params["z_full"])
 
         # Return over the last `lookback` bars, standardized by its recent vol.
         mom = close.pct_change(lookback)
         vol = mom.rolling(vol_window, min_periods=vol_window).std()
         z = mom / vol.replace(0.0, np.nan)
+        zval = z.to_numpy()
 
         # Fade it, scaled by z and capped at ±1 (full size at |z| = z_full).
-        target = -np.clip((z / z_full).to_numpy(), -1.0, 1.0)
-        target[np.isnan(z.to_numpy())] = 0.0
+        target = -np.clip(zval / z_full, -1.0, 1.0)
+        # Deadzone: stay flat until the move stretches past z_enter, so we're not
+        # forced into a position every bar. Reverting back inside the band = exit.
+        target[np.abs(zval) < z_enter] = 0.0
+        target[np.isnan(zval)] = 0.0
 
         return pd.DataFrame(
             {

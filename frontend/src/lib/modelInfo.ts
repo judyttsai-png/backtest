@@ -10,9 +10,9 @@ export const MODEL_INFO: Record<string, string[]> = {
   meanrev: [
     "Short-horizon reversal: fade the prior move — long after a down move, short after an up move.",
     "Sized by magnitude: z = the last `lookback`-bar return in standard deviations (vol-window σ).",
-    "Target = −clip(z / z_full, −1, +1): a big, unusual move gets a big fade; a small wobble a small one.",
-    "z_full sets how extreme a move earns full size; smaller ≈ the old on/off ±1 behavior.",
-    "Sizing by z also cuts churn (small moves → small positions) — but still check net-of-cost equity.",
+    "Only trades when stretched: flat until |z| passes z_enter, so it's NOT in a position every bar.",
+    "Target = −clip(z / z_full, −1, +1): a big, unusual move gets a big fade; a small one a small fade.",
+    "Reverting back inside the z_enter band closes the trade — that's the natural exit.",
     "The edge is real but tiny per trade; validate out-of-sample (it survives mainly on daily range-bound pairs).",
   ],
   dmi: [

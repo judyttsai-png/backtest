@@ -230,6 +230,8 @@ export function BacktestControls({ strategies }: Props) {
           />
         </div>
 
+        {selected?.kind === "portfolio" ? (
+        <>
         <div className="field">
           <label>initial allocation</label>
           <select
@@ -313,6 +315,17 @@ export function BacktestControls({ strategies }: Props) {
               Allocation is applied; top-up / trim are captured with the run (sizing engine WIP).
             </div>
           </>
+        )}
+        </>
+        ) : (
+          <div className="field">
+            <label>position sizing</label>
+            <div className="hint">
+              Single-asset strategy — position size comes from the model's own signal (e.g. Mean
+              Reversion's z-score). Capital allocation across pairs applies only to multi-pair /
+              portfolio strategies like Velocity Crossover.
+            </div>
+          </div>
         )}
       </div>
 
