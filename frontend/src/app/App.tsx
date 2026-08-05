@@ -5,6 +5,7 @@ import { BacktestControls } from "../features/backtest/BacktestControls";
 import { BacktestResults } from "../features/backtest/BacktestResults";
 import { SignalsPage } from "../features/signals/SignalsPage";
 import { FitMatrixPage } from "../features/fit/FitMatrixPage";
+import { PlaybookPage } from "../features/playbook/PlaybookPage";
 import { getStrategies } from "../api/endpoints";
 import { useUiStore } from "../state/uiStore";
 
@@ -35,9 +36,13 @@ export function App() {
         <main className="results fullspan">
           <SignalsPage />
         </main>
-      ) : (
+      ) : tab === "fit" ? (
         <main className="results fullspan">
           <FitMatrixPage />
+        </main>
+      ) : (
+        <main className="results fullspan">
+          <PlaybookPage />
         </main>
       )}
     </div>

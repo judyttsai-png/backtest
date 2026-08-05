@@ -102,3 +102,62 @@ def fit_matrix(req: FitRequest, db: Session = Depends(get_db)):
         "cost_bps": req.cost_bps,
         "oos_frac": req.oos_frac,
     }
+
+
+class PlaybookItem(BaseModel):
+    pair: str
+    strategy: str
+    timeframe: str = "1d"
+    params: dict[str, float] = Field(default_factory=dict)
+
+
+class PlaybookRequest(BaseModel):
+    items: list[PlaybookItem]
+    cost_bps: float = 0.5
+    oos_frac: float = 0.25
+
+
+@router.post("/score")
+def playbook_score(req: PlaybookRequest, db: Session = Depends(get_db)):
+    """Score a curated set of (pair, strategy, timeframe, params) assignments —
+    each on its own OOS tail. Powers the Playbook page."""
+    from collections import defaultdict
+
+    end = datetime.now(timezone.utc)
+    by_tf: dict[str, list[PlaybookItem]] = defaultdict(list)
+    for it in req.items:
+        by_tf[it.timeframe].append(it)
+
+    scores: list[dict] = []
+    for tf, items in by_tf.items():
+        start = end - timedelta(days=_LOOKBACK_DAYS.get(tf, 4000))
+        syms = sorted({it.pair.upper() for it in items})
+        try:
+            bundle = build_bundle(db, syms, tf, start, end, skip_missing=True)
+        except ValueError:
+            bundle = None
+        for it in items:
+            pair = it.pair.upper()
+            dfp = bundle.panels.get(pair) if bundle is not None else None
+            row = {"pair": pair, "strategy": it.strategy, "timeframe": tf,
+                   "sharpe": None, "return": None, "win_rate": None}
+            if dfp is not None and len(dfp) >= 120 and it.strategy in STRATEGY_REGISTRY:
+                cut = int(len(dfp) * (1.0 - req.oos_frac))
+                oos = dfp.iloc[cut:]
+                try:
+                    b = CandleBundle(timeframe=tf, symbols=[pair], panels={pair: oos},
+                                     close_panel=None, benchmark=None)
+                    m = run_strategy_backtest(
+                        it.strategy, it.params, b,
+                        {"mode": "long_short", "cost_bps": req.cost_bps, "initial_capital": 1000},
+                    ).metrics
+                    row.update(sharpe=_round(m.sharpe), **{"return": _round(m.total_return, 4)},
+                               win_rate=_round(m.win_rate))
+                except Exception:
+                    pass
+            scores.append(row)
+
+    # keep the caller's original order
+    order = {(it.pair.upper(), it.strategy, it.timeframe): i for i, it in enumerate(req.items)}
+    scores.sort(key=lambda r: order.get((r["pair"], r["strategy"], r["timeframe"]), 0))
+    return {"scores": scores, "cost_bps": req.cost_bps, "oos_frac": req.oos_frac}

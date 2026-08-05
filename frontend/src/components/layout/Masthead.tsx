@@ -49,6 +49,13 @@ export function Masthead({ backendOk, backendError }: Props) {
         >
           Fit
         </button>
+        <button
+          type="button"
+          className={`tabbtn ${tab === "playbook" ? "on" : ""}`}
+          onClick={() => set("tab", "playbook")}
+        >
+          Playbook
+        </button>
       </nav>
       <div className="status">
         <span>

@@ -274,3 +274,47 @@ export interface FitResponse {
   cost_bps: number;
   oos_frac: number;
 }
+
+// playbook (per-currency strategy assignment, scored on its own OOS tail)
+export interface PlaybookItem {
+  pair: string;
+  strategy: string;
+  timeframe: Timeframe;
+  params?: Record<string, number>;
+}
+export interface PlaybookScore {
+  pair: string;
+  strategy: string;
+  timeframe: string;
+  sharpe: number | null;
+  return: number | null;
+  win_rate: number | null;
+}
+export interface PlaybookScoreResponse {
+  scores: PlaybookScore[];
+  cost_bps: number;
+  oos_frac: number;
+}
+
+// playbook-driven live signals (one assigned strategy per pair + ATR stop/target)
+export interface PlaybookSignalPair {
+  symbol: string;
+  price: number | null;
+  strategy: string;
+  name: string;
+  timeframe: string;
+  direction: number; // -1 short, 0 flat, +1 long
+  strength: number;
+  value: number | null;
+  unit: string;
+  threshold: number | null;
+  atr_pct: number | null;
+  stop_pct: number | null;
+  target_pct: number | null;
+}
+export interface PlaybookSignalsResponse {
+  asof: string;
+  pairs: PlaybookSignalPair[];
+  stop_mult: number;
+  target_mult: number;
+}

@@ -176,3 +176,101 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
         "models": [m.id for m in models],
         "pairs": pairs,
     }
+
+
+# ---------------------------------------------------------------------------
+# Playbook-driven signals: each pair uses its own assigned strategy + bar +
+# constants, plus a volatility-based (ATR) stop / target recommendation.
+# ---------------------------------------------------------------------------
+class PlaybookSignalItem(BaseModel):
+    pair: str
+    strategy: str
+    timeframe: str = "1d"
+    params: dict = Field(default_factory=dict)
+
+
+class PlaybookSignalRequest(BaseModel):
+    items: list[PlaybookSignalItem]
+    asof: datetime | None = None
+    atr_len: int = 14
+    stop_mult: float = 1.5  # stop distance = stop_mult × ATR
+    target_mult: float = 2.0  # target distance = target_mult × ATR
+
+
+def _atr_pct(df, length: int) -> float | None:
+    """Average true range of the last `length` bars, as a fraction of price."""
+    try:
+        high = df["high"].astype(float).to_numpy()
+        low = df["low"].astype(float).to_numpy()
+        close = df["close"].astype(float).to_numpy()
+        prev = np.roll(close, 1)
+        prev[0] = close[0]
+        tr = np.maximum.reduce([high - low, np.abs(high - prev), np.abs(low - prev)])
+        atr = float(np.nanmean(tr[-length:])) if len(tr) >= length else float(np.nanmean(tr))
+        px = close[-1]
+        return atr / px if px else None
+    except Exception:
+        return None
+
+
+@router.post("/playbook")
+def playbook_signals(req: PlaybookSignalRequest, db: Session = Depends(get_db)):
+    """One live call per pair using that pair's assigned strategy/bar/params, with
+    a volatility-scaled stop and target. Powers the Playbook-driven Signals tab."""
+    from collections import defaultdict
+
+    end = req.asof or datetime.now(timezone.utc)
+    by_tf: dict[str, list[PlaybookSignalItem]] = defaultdict(list)
+    for it in req.items:
+        if it.strategy in STRATEGY_REGISTRY and STRATEGY_REGISTRY[it.strategy].kind == "single":
+            by_tf[it.timeframe].append(it)
+
+    # one bundle per distinct timeframe
+    bundles: dict[str, object] = {}
+    for tf, items in by_tf.items():
+        start = end - timedelta(days=_LOOKBACK_DAYS.get(tf, 900))
+        syms = sorted({it.pair.upper() for it in items})
+        try:
+            bundles[tf] = build_bundle(db, syms, tf, start, end, skip_missing=True)
+        except ValueError:
+            bundles[tf] = None
+
+    pairs = []
+    for tf, items in by_tf.items():
+        bundle = bundles.get(tf)
+        if bundle is None:
+            continue
+        for it in items:
+            sym = it.pair.upper()
+            df = bundle.panels.get(sym)
+            if df is None or df.empty:
+                continue
+            strat = STRATEGY_REGISTRY[it.strategy]
+            defaults = {s.id: s.default for s in strat.parameter_specs}
+            params = strat.validate_parameters({**defaults, **(it.params or {})})
+            sig = strat.generate_signals(df, params)
+            tp = sig["target_position"].astype(float)
+            val = float(tp.iloc[-1]) if len(tp) else 0.0
+            value, unit, threshold = _reading(strat.id, sig, params)
+            price = round(float(df["close"].iloc[-1]), 6)
+            atr = _atr_pct(df, int(req.atr_len))
+            pairs.append({
+                "symbol": sym,
+                "price": price,
+                "strategy": strat.id,
+                "name": strat.name,
+                "timeframe": tf,
+                "direction": _direction(val),
+                "strength": round(abs(val), 4),
+                "value": value,
+                "unit": unit,
+                "threshold": threshold,
+                "atr_pct": None if atr is None else round(atr * 100, 3),
+                "stop_pct": None if atr is None else round(atr * req.stop_mult * 100, 3),
+                "target_pct": None if atr is None else round(atr * req.target_mult * 100, 3),
+            })
+
+    # actionable (non-flat) calls first
+    pairs.sort(key=lambda p: (p["direction"] != 0, p["strength"]), reverse=True)
+    return {"asof": end.isoformat(), "pairs": pairs,
+            "stop_mult": req.stop_mult, "target_mult": req.target_mult}

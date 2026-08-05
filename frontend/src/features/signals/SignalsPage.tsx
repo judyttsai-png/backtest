@@ -1,207 +1,146 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUiStore } from "../../state/uiStore";
-import { getStrategies, postSignals } from "../../api/endpoints";
-import type { ModelSignal, PairSignals, Timeframe } from "../../types/api";
+import { postPlaybookSignals } from "../../api/endpoints";
+import type { PlaybookSignalPair, SignalsResponse } from "../../types/api";
 import { PositionsPanel } from "./PositionsPanel";
-import { ModelSettings } from "./ModelSettings";
 import { fmtInstant, tzLabel } from "../../lib/time";
 
 const label = (d: number) => (d > 0 ? "LONG" : d < 0 ? "SHORT" : "NEUTRAL");
 const cls = (d: number) => (d > 0 ? "sig-long" : d < 0 ? "sig-short" : "sig-flat");
-const arrow = (d: number) => (d > 0 ? "▲" : d < 0 ? "▼" : "·");
+const REFRESH_MS = 30 * 60_000;
 
-const fmtVal = (s: ModelSignal): string => {
-  if (s.value == null) return "";
-  if (s.unit.includes("%")) return `${s.value > 0 ? "+" : ""}${s.value}%`;
-  return `${s.value}`;
+const fmtReading = (p: PlaybookSignalPair): string => {
+  if (p.value == null) return "";
+  const v = p.unit.includes("%") ? `${p.value > 0 ? "+" : ""}${p.value}%` : `${p.value}`;
+  return p.threshold != null ? `${v} vs ${p.threshold}` : v;
 };
 
-const BAR_SIZES: Timeframe[] = ["15m", "30m", "1h", "1d"];
-// auto-refresh cadence per bar size (ms): match the bar for intraday, hourly for daily.
-const REFRESH_MS: Record<string, number> = {
-  "15m": 15 * 60_000,
-  "30m": 30 * 60_000,
-  "1h": 60 * 60_000,
-  "1d": 60 * 60_000,
-};
-
-/** Live recommendation view: each pair's current call, the models backing it,
- *  the index value behind each vote, and a collapsible editor for every model
- *  variable. */
+/** Live recommendations, fully driven by the Playbook: each pair is evaluated
+ *  with its own assigned strategy + bar + constants, and shown with an ATR-based
+ *  stop and target. Edit the assignments on the Playbook tab. */
 export function SignalsPage() {
-  const symbols = useUiStore((s) => s.symbols);
-  const storeTf = useUiStore((s) => s.timeframe);
+  const playbook = useUiStore((s) => s.playbook);
   const tzMinutes = useUiStore((s) => s.tzMinutes);
-  const symbolList = symbols
-    .split(",")
-    .map((x) => x.trim().toUpperCase())
-    .filter(Boolean);
-
-  // Signals-page bar size (independent of the backtest tab) + auto-refresh.
-  const [barSize, setBarSize] = useState<Timeframe>(
-    BAR_SIZES.includes(storeTf) ? storeTf : "1d",
-  );
+  const setTab = useUiStore((s) => s.set);
   const [autoRefresh, setAutoRefresh] = useState(false);
 
-  const strategiesQ = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
-  const strategies = strategiesQ.data ?? [];
-
-  // Per-model parameter overrides — stored so they survive tab switches / reloads.
-  const overrides = useUiStore((s) => s.signalOverrides);
-  const setOverride = useUiStore((s) => s.setSignalOverride);
-  const resetOverrides = useUiStore((s) => s.resetSignalOverrides);
-
-  // Which strategies to include ([] in store = all).
-  const signalModels = useUiStore((s) => s.signalModels);
-  const setSignalModels = useUiStore((s) => s.setSignalModels);
-  // Per-model bar size ({} = use the page bar).
-  const signalTimeframes = useUiStore((s) => s.signalTimeframes);
-  const setSignalTimeframe = useUiStore((s) => s.setSignalTimeframe);
-  const allIds = strategies.map((m) => m.id);
-  const selected = signalModels.length ? signalModels.filter((id) => allIds.includes(id)) : allIds;
-  const toggleModel = (id: string) => {
-    const next = selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id];
-    if (next.length > 0) setSignalModels(next); // always keep at least one
-  };
-
-  const models =
-    strategies.length > 0
-      ? strategies
-          .filter((m) => selected.includes(m.id))
-          .map((m) => ({
-            id: m.id,
-            parameters: overrides[m.id] || {},
-            timeframe: signalTimeframes[m.id], // undefined → backend uses the page bar
-          }))
-      : undefined;
+  const items = Object.entries(playbook).map(([pair, r]) => ({
+    pair,
+    strategy: r.strategy,
+    timeframe: r.timeframe,
+    params: r.params || {},
+  }));
 
   const q = useQuery({
-    queryKey: [
-      "signals", symbols, barSize, JSON.stringify(overrides),
-      selected.join(","), JSON.stringify(signalTimeframes), strategies.length,
-    ],
-    queryFn: () => postSignals({ symbols: symbolList, timeframe: barSize, models }),
-    enabled: symbolList.length > 0,
+    queryKey: ["playbook-signals", JSON.stringify(playbook)],
+    queryFn: () => postPlaybookSignals({ items }),
+    enabled: items.length > 0,
     refetchOnWindowFocus: false,
-    refetchInterval: autoRefresh ? REFRESH_MS[barSize] : false,
+    refetchInterval: autoRefresh ? REFRESH_MS : false,
   });
+
+  // Adapt to the shape PositionsPanel expects (one assigned model per pair).
+  const asPositionsSignals: SignalsResponse | undefined = q.data && {
+    asof: q.data.asof,
+    timeframe: "1d",
+    models: [],
+    pairs: q.data.pairs.map((p) => ({
+      symbol: p.symbol,
+      price: p.price,
+      consensus: {
+        direction: p.direction,
+        long: p.direction > 0 ? 1 : 0,
+        short: p.direction < 0 ? 1 : 0,
+        flat: p.direction === 0 ? 1 : 0,
+        agree: 1,
+      },
+      signals: [
+        { model: p.strategy, name: p.name, direction: p.direction, strength: p.strength,
+          value: p.value, unit: p.unit, threshold: p.threshold },
+      ],
+    })),
+  };
 
   return (
     <>
       <div className="panel">
         <div className="phead">
-          <span className="ptitle">Live recommendations</span>
+          <span className="ptitle">Live recommendations · Playbook-driven</span>
           <span className="psub">
             {q.data
-              ? `${q.data.pairs.length} pairs · as of ${fmtInstant(q.data.asof, tzMinutes)} ${tzLabel(tzMinutes)}`
-              : "computing…"}
+              ? `${q.data.pairs.length} pairs · each on its assigned strategy · as of ${fmtInstant(q.data.asof, tzMinutes)} ${tzLabel(tzMinutes)}`
+              : "assign strategies on the Playbook tab"}
           </span>
           <span style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
-            <label className="sigctl">
-              bar
-              <select value={barSize} onChange={(e) => setBarSize(e.target.value as Timeframe)}>
-                {BAR_SIZES.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
+            <button className="run secondary" style={{ width: "auto", padding: "9px 14px", margin: 0 }}
+              onClick={() => setTab("tab", "playbook")}>
+              ✎ edit playbook
+            </button>
+            <label className="sigctl" title="auto-refresh every 30 min">
+              <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} />
+              auto
             </label>
-            <label className="sigctl" title={`refetch every ${REFRESH_MS[barSize] / 60000} min`}>
-              <input
-                type="checkbox"
-                checked={autoRefresh}
-                onChange={(e) => setAutoRefresh(e.target.checked)}
-              />
-              auto{autoRefresh ? ` · ${REFRESH_MS[barSize] / 60000}m` : ""}
-            </label>
-            <button
-              className="run secondary"
-              style={{ width: "auto", padding: "9px 16px", margin: 0 }}
-              onClick={() => q.refetch()}
-              disabled={q.isFetching}
-            >
+            <button className="run secondary" style={{ width: "auto", padding: "9px 16px", margin: 0 }}
+              onClick={() => q.refetch()} disabled={q.isFetching}>
               {q.isFetching ? "REFRESHING…" : "↻ REFRESH"}
             </button>
           </span>
         </div>
 
-        {strategies.length > 0 && (
-          <div className="stratpick">
-            <span className="thlabel">strategies</span>
-            {strategies.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={`stratchip ${selected.includes(m.id) ? "on" : ""}`}
-                onClick={() => toggleModel(m.id)}
-                title={selected.includes(m.id) ? "included — click to exclude" : "excluded — click to include"}
-              >
-                {m.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <ModelSettings
-          strategies={strategies}
-          overrides={overrides}
-          onChange={setOverride}
-          onReset={resetOverrides}
-          timeframes={signalTimeframes}
-          defaultBar={barSize}
-          barSizes={BAR_SIZES}
-          onTimeframe={setSignalTimeframe}
-        />
-
         <div className="hint" style={{ marginBottom: 14 }}>
-          Direction each model recommends now, with the index value behind it. Open “model settings”
-          to tune any variable. Validate out-of-sample before trading.
+          One call per currency, using the strategy, bar and constants you assigned on the Playbook
+          tab. Stop and target are sized to each pair's recent volatility (ATR). Validate
+          out-of-sample before trading.
         </div>
 
         {q.isError && <div className="banner err">signals error — {(q.error as Error).message}</div>}
-        {q.isLoading && <div className="banner">computing signals across all models…</div>}
+        {q.isLoading && <div className="banner">computing each pair's assigned strategy…</div>}
+        {items.length === 0 && !q.isLoading && (
+          <div className="banner">No pairs in the Playbook — add some on the Playbook tab.</div>
+        )}
 
         <div className="sigrid">
-          {q.data?.pairs.map((p) => (
-            <PairCard key={p.symbol} p={p} />
-          ))}
+          {q.data?.pairs.map((p) => <PairCard key={p.symbol} p={p} />)}
         </div>
       </div>
-      <PositionsPanel signals={q.data} />
+      <PositionsPanel signals={asPositionsSignals} />
     </>
   );
 }
 
-function PairCard({ p }: { p: PairSignals }) {
-  const c = p.consensus;
+function PairCard({ p }: { p: PlaybookSignalPair }) {
+  const dir = p.direction;
+  const px = p.price;
+  // Stop below / target above for a long; inverted for a short.
+  const stopPx = px != null && p.stop_pct != null && dir !== 0
+    ? px * (1 - (dir > 0 ? 1 : -1) * (p.stop_pct / 100)) : null;
+  const targetPx = px != null && p.target_pct != null && dir !== 0
+    ? px * (1 + (dir > 0 ? 1 : -1) * (p.target_pct / 100)) : null;
+  const fx = (v: number | null) => (v == null ? "—" : v.toPrecision(6).replace(/\.?0+$/, ""));
+
   return (
-    <div className={`sigcard ${cls(c.direction)}`}>
+    <div className={`sigcard ${cls(dir)}`}>
       <div className="sigcard-head">
         <span className="sigpair">{p.symbol}</span>
-        <span className={`sigdir ${cls(c.direction)}`}>{label(c.direction)}</span>
+        <span className={`sigdir ${cls(dir)}`}>{label(dir)}</span>
       </div>
       <div className="sigtally">
-        {c.agree} of {p.signals.length} models · {c.long}▲ {c.short}▼ {c.flat}·
+        {p.name} · {p.timeframe}
+        {p.value != null && <span className="sigval"> · {fmtReading(p)}</span>}
       </div>
-      <div className="sigbadges">
-        {p.signals.map((s) => (
-          <span
-            key={s.model}
-            className={`sigbadge ${cls(s.direction)}`}
-            title={
-              s.value != null
-                ? `${s.name}: ${label(s.direction)} · ${s.value}${s.unit ? " " + s.unit : ""}` +
-                  (s.threshold != null ? ` vs barrier ${s.threshold}` : "")
-                : `${s.name}: ${label(s.direction)}`
-            }
-          >
-            {arrow(s.direction)} {s.model}
-            {s.timeframe && <span className="sigtf"> {s.timeframe}</span>}
-            {s.value != null && <span className="sigval"> {fmtVal(s)}</span>}
-          </span>
-        ))}
+      <div className="sigtargets">
+        <div className="tgt"><span className="tl">price</span><span className="tv">{fx(px)}</span></div>
+        {dir !== 0 ? (
+          <>
+            <div className="tgt"><span className="tl">stop</span>
+              <span className="tv neg">{fx(stopPx)}{p.stop_pct != null && <em> −{p.stop_pct}%</em>}</span></div>
+            <div className="tgt"><span className="tl">target</span>
+              <span className="tv pos">{fx(targetPx)}{p.target_pct != null && <em> +{p.target_pct}%</em>}</span></div>
+          </>
+        ) : (
+          <div className="tgt"><span className="tl">stop/target</span><span className="tv">— (flat)</span></div>
+        )}
       </div>
     </div>
   );

@@ -8,6 +8,9 @@ import type {
   EquityResponse,
   FitRequest,
   FitResponse,
+  PlaybookItem,
+  PlaybookScoreResponse,
+  PlaybookSignalsResponse,
   HeatmapResponse,
   MarkersResponse,
   Metrics,
@@ -61,3 +64,12 @@ export const getHeatmap = (id: string, x: string, y: string, metric: string) =>
 // strategy-fit matrix
 export const postFitMatrix = (req: FitRequest) =>
   api.post<FitResponse>("/api/fit-matrix", req);
+
+// playbook (per-currency assignment scoring)
+export const postPlaybookScore = (req: { items: PlaybookItem[]; cost_bps: number; oos_frac: number }) =>
+  api.post<PlaybookScoreResponse>("/api/fit-matrix/score", req);
+
+// playbook-driven live signals
+export const postPlaybookSignals = (req: {
+  items: { pair: string; strategy: string; timeframe: string; params?: Record<string, number> }[];
+}) => api.post<PlaybookSignalsResponse>("/api/signals/playbook", req);

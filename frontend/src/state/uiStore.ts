@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { ExecutionMode, StrategyMeta, Timeframe } from "../types/api";
 
 export type Theme = "dark" | "light";
-export type Tab = "backtest" | "signals" | "fit";
+export type Tab = "backtest" | "signals" | "fit" | "playbook";
 
 interface UiState {
   strategyId: string;
@@ -36,6 +36,9 @@ interface UiState {
   signalTimeframes: Record<string, Timeframe>;
   // Per-strategy parameter overrides for the Fit matrix ({} = defaults). Persisted.
   fitOverrides: Record<string, Record<string, number>>;
+  // Per-currency strategy assignment (the Playbook): strategy, bar, and its own
+  // constants for that pair. Persisted.
+  playbook: Record<string, { strategy: string; timeframe: Timeframe; params?: Record<string, number> }>;
 
   activeRunId: string | null;
   activeSweepId: string | null;
@@ -50,6 +53,13 @@ interface UiState {
   setSignalTimeframe: (modelId: string, tf: Timeframe) => void;
   setFitOverride: (modelId: string, paramId: string, value: number) => void;
   resetFitOverrides: () => void;
+  setPlaybookRow: (
+    pair: string,
+    patch: Partial<{ strategy: string; timeframe: Timeframe; params?: Record<string, number> }>,
+  ) => void;
+  setPlaybookParam: (pair: string, paramId: string, value: number) => void;
+  addPlaybookRow: (pair: string) => void;
+  removePlaybookRow: (pair: string) => void;
   setActiveRunId: (id: string | null) => void;
   setActiveSweepId: (id: string | null) => void;
 }
@@ -126,6 +136,42 @@ function initialFitOverrides(): Record<string, Record<string, number>> {
   }
 }
 
+// Seeded from the strategy-fit matrix (daily OOS best per pair). Users edit it.
+const DEFAULT_PLAYBOOK: Record<string, { strategy: string; timeframe: Timeframe }> = {
+  AUDUSD: { strategy: "meanrev", timeframe: "1d" },
+  EURAUD: { strategy: "meanrev", timeframe: "1d" },
+  EURUSD: { strategy: "meanrev", timeframe: "1d" },
+  GBPUSD: { strategy: "meanrev", timeframe: "1d" },
+  EURGBP: { strategy: "meanrev", timeframe: "1d" },
+  EURCHF: { strategy: "meanrev", timeframe: "1d" },
+  CADJPY: { strategy: "meanrev", timeframe: "1d" },
+  USDCAD: { strategy: "sma", timeframe: "1d" },
+  NZDUSD: { strategy: "sma", timeframe: "1d" },
+  GBPJPY: { strategy: "sma", timeframe: "1d" },
+  AUDJPY: { strategy: "sma", timeframe: "1d" },
+  CHFJPY: { strategy: "sma", timeframe: "1d" },
+  NZDJPY: { strategy: "sma", timeframe: "1d" },
+  USDJPY: { strategy: "dmi", timeframe: "1d" },
+  EURJPY: { strategy: "dmi", timeframe: "1d" },
+  USDCHF: { strategy: "smacross", timeframe: "1d" },
+};
+const PLAYBOOK_KEY = "backtest-playbook";
+function initialPlaybook(): Record<string, { strategy: string; timeframe: Timeframe }> {
+  try {
+    const v = localStorage.getItem(PLAYBOOK_KEY);
+    return v ? JSON.parse(v) : DEFAULT_PLAYBOOK;
+  } catch {
+    return DEFAULT_PLAYBOOK;
+  }
+}
+function savePlaybook(p: Record<string, { strategy: string; timeframe: Timeframe }>): void {
+  try {
+    localStorage.setItem(PLAYBOOK_KEY, JSON.stringify(p));
+  } catch {
+    /* localStorage unavailable */
+  }
+}
+
 export const useUiStore = create<UiState>((set) => ({
   strategyId: "sma",
   params: { fast: 10, slow: 40 },
@@ -152,6 +198,7 @@ export const useUiStore = create<UiState>((set) => ({
   signalModels: initialSignalModels(),
   signalTimeframes: initialSignalTimeframes(),
   fitOverrides: initialFitOverrides(),
+  playbook: initialPlaybook(),
 
   activeRunId: null,
   activeSweepId: null,
@@ -225,6 +272,40 @@ export const useUiStore = create<UiState>((set) => ({
         /* localStorage unavailable */
       }
       return { fitOverrides: {} };
+    }),
+  setPlaybookRow: (pair, patch) =>
+    set((s) => {
+      const cur = s.playbook[pair] ?? { strategy: "meanrev", timeframe: "1d" as Timeframe };
+      // Changing strategy clears that pair's params (they belonged to the old model).
+      const cleared = patch.strategy && patch.strategy !== cur.strategy ? { params: {} } : {};
+      const next = { ...s.playbook, [pair]: { ...cur, ...patch, ...cleared } };
+      savePlaybook(next);
+      return { playbook: next };
+    }),
+  setPlaybookParam: (pair, paramId, value) =>
+    set((s) => {
+      const cur = s.playbook[pair] ?? { strategy: "meanrev", timeframe: "1d" as Timeframe };
+      const next = {
+        ...s.playbook,
+        [pair]: { ...cur, params: { ...(cur.params || {}), [paramId]: value } },
+      };
+      savePlaybook(next);
+      return { playbook: next };
+    }),
+  addPlaybookRow: (pair) =>
+    set((s) => {
+      const p = pair.trim().toUpperCase();
+      if (!p || s.playbook[p]) return {};
+      const next = { ...s.playbook, [p]: { strategy: "meanrev", timeframe: "1d" as Timeframe } };
+      savePlaybook(next);
+      return { playbook: next };
+    }),
+  removePlaybookRow: (pair) =>
+    set((s) => {
+      const next = { ...s.playbook };
+      delete next[pair];
+      savePlaybook(next);
+      return { playbook: next };
     }),
   setActiveRunId: (id) => set(() => ({ activeRunId: id })),
   setActiveSweepId: (id) => set(() => ({ activeSweepId: id })),
