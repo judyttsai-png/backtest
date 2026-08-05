@@ -52,6 +52,7 @@ class MeanReversionStrategy(Strategy):
         ParamSpec("vol_window", "volatility window (bars)", "int", min=5, max=250, default=20),
         ParamSpec("z_enter", "z-score to enter (deadzone)", "float", min=0, max=5, default=0.5, step=0.25),
         ParamSpec("z_full", "z-score for full size", "float", min=0.25, max=5, default=1.5, step=0.25),
+        ParamSpec("stop_pct", "stop-loss (% from entry, 0=off)", "float", min=0, max=50, default=0, step=0.5),
     ]
 
     def validate_parameters(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -68,6 +69,7 @@ class MeanReversionStrategy(Strategy):
         vol_window = int(params["vol_window"])
         z_enter = float(params["z_enter"])
         z_full = float(params["z_full"])
+        stop = float(params["stop_pct"]) / 100.0
 
         # Return over the last `lookback` bars, standardized by its recent vol.
         mom = close.pct_change(lookback)
@@ -76,11 +78,45 @@ class MeanReversionStrategy(Strategy):
         zval = z.to_numpy()
 
         # Fade it, scaled by z and capped at ±1 (full size at |z| = z_full).
-        target = -np.clip(zval / z_full, -1.0, 1.0)
+        raw = -np.clip(zval / z_full, -1.0, 1.0)
         # Deadzone: stay flat until the move stretches past z_enter, so we're not
         # forced into a position every bar. Reverting back inside the band = exit.
-        target[np.abs(zval) < z_enter] = 0.0
-        target[np.isnan(zval)] = 0.0
+        raw[np.abs(zval) < z_enter] = 0.0
+        raw[np.isnan(zval)] = 0.0
+
+        if stop <= 0:
+            target = raw
+        else:
+            # Path-dependent stop-loss: flatten a trade once its loss from entry
+            # exceeds `stop`, and don't re-enter that same direction until the
+            # signal resets (z falls back inside the band, or flips). Close-to-
+            # close; the engine applies the position on the next bar.
+            px = close.to_numpy()
+            target = np.zeros(len(raw))
+            pos = 0.0
+            entry = np.nan
+            blocked = 0  # a direction we're sitting out after a stop
+            for t in range(len(raw)):
+                r = raw[t]
+                if pos != 0.0 and not np.isnan(entry) and not np.isnan(px[t]):
+                    trade_ret = (px[t] / entry - 1.0) * np.sign(pos)
+                    if trade_ret <= -stop:  # stopped out
+                        blocked = int(np.sign(pos))
+                        pos, entry = 0.0, np.nan
+                        target[t] = 0.0
+                        continue
+                # clear the block once the signal resets (flat) or flips
+                if r == 0.0 or (blocked != 0 and np.sign(r) == -blocked):
+                    blocked = 0
+                if r == 0.0:
+                    pos, entry = 0.0, np.nan
+                elif blocked != 0 and np.sign(r) == blocked:
+                    pos, entry = 0.0, np.nan  # sit out the blocked direction
+                elif np.sign(r) != np.sign(pos):
+                    pos, entry = r, px[t]  # fresh entry / flip
+                else:
+                    pos = r  # same direction, resize (keep entry price)
+                target[t] = pos
 
         return pd.DataFrame(
             {
