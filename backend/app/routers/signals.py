@@ -27,6 +27,7 @@ _LOOKBACK_DAYS = {"1d": 900, "1h": 120, "30m": 60, "15m": 45, "5m": 20, "1m": 10
 class SignalModel(BaseModel):
     id: str
     parameters: dict = Field(default_factory=dict)
+    timeframe: str | None = None  # per-model bar size; falls back to the request timeframe
 
 
 class SignalRequest(BaseModel):
@@ -74,18 +75,37 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
         if m.id not in STRATEGY_REGISTRY:
             raise HTTPException(status_code=422, detail=f"unknown strategy '{m.id}'")
 
-    try:
-        bundle = build_bundle(db, symbols, req.timeframe, start, end, skip_missing=True)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    # Each model can run on its own bar size; load one bundle per distinct
+    # timeframe (a model with no timeframe uses the request default).
+    def tf_of(m: SignalModel) -> str:
+        return m.timeframe or req.timeframe
 
-    # only pairs that actually have data for this bar size (e.g. USDKRW/USDTWD
-    # drop out on intraday since they're yfinance-daily only)
-    symbols = list(bundle.symbols)
-    # per-symbol accumulation of each model's latest signal
+    bundles: dict[str, object] = {}
+    for tf in {tf_of(m) for m in models} | {req.timeframe}:
+        s = end - timedelta(days=_LOOKBACK_DAYS.get(tf, 900))
+        try:
+            bundles[tf] = build_bundle(db, symbols, tf, s, end, skip_missing=True)
+        except ValueError:
+            bundles[tf] = None
+
+    if all(b is None for b in bundles.values()):
+        raise HTTPException(status_code=422, detail="no data for the requested symbols/timeframes")
+
+    # available pairs = union across every bundle actually loaded
+    avail: list[str] = []
+    for b in bundles.values():
+        if b is not None:
+            for s in b.symbols:
+                if s not in avail:
+                    avail.append(s)
+    symbols = avail
     acc: dict[str, list[dict]] = {s: [] for s in symbols}
 
     for m in models:
+        tf = tf_of(m)
+        bundle = bundles.get(tf)
+        if bundle is None:
+            continue
         strat = STRATEGY_REGISTRY[m.id]
         defaults = {s.id: s.default for s in strat.parameter_specs}
         params = strat.validate_parameters({**defaults, **(m.parameters or {})})
@@ -98,11 +118,13 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
             last = weights.reindex(columns=panel.columns).iloc[-1]
             vthr = params.get("vthr")
             for sym in symbols:
+                if sym not in panel.columns:
+                    continue
                 w = float(last.get(sym, 0.0)) if sym in last.index else 0.0
                 acc[sym].append(
                     {"model": strat.id, "name": strat.name, "direction": _direction(w),
                      "strength": round(abs(w), 4), "value": None, "unit": "weight",
-                     "threshold": vthr}
+                     "threshold": vthr, "timeframe": tf}
                 )
         else:  # single-asset
             for sym in symbols:
@@ -116,15 +138,20 @@ def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
                 acc[sym].append(
                     {"model": strat.id, "name": strat.name, "direction": _direction(val),
                      "strength": round(abs(val), 4), "value": value, "unit": unit,
-                     "threshold": threshold}
+                     "threshold": threshold, "timeframe": tf}
                 )
 
-    # latest close per pair (for the positions panel's live P&L)
+    # latest close per pair (for the positions panel's live P&L); prefer the
+    # request's default timeframe, else any timeframe that has the pair.
     prices: dict[str, float] = {}
+    tf_order = [req.timeframe, *[t for t in bundles if t != req.timeframe]]
     for sym in symbols:
-        panel = bundle.panels.get(sym)
-        if panel is not None and not panel.empty:
-            prices[sym] = round(float(panel["close"].iloc[-1]), 6)
+        for tf in tf_order:
+            b = bundles.get(tf)
+            panel = b.panels.get(sym) if b is not None else None
+            if panel is not None and not panel.empty:
+                prices[sym] = round(float(panel["close"].iloc[-1]), 6)
+                break
 
     pairs = []
     for sym in symbols:

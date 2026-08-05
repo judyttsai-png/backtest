@@ -131,6 +131,7 @@ export interface ModelSignal {
   value: number | null; // the model's key index reading
   unit: string;
   threshold: number | null; // the barrier the value is compared to
+  timeframe?: string; // bar size this model was evaluated on
 }
 
 export interface PairSignals {
@@ -150,7 +151,7 @@ export interface SignalsResponse {
 export interface SignalsRequest {
   symbols: string[];
   timeframe: Timeframe;
-  models?: { id: string; parameters?: Record<string, number> }[];
+  models?: { id: string; parameters?: Record<string, number>; timeframe?: Timeframe }[];
 }
 
 export interface Trade {
@@ -247,4 +248,28 @@ export interface WalkForwardResponse {
 
 export interface WalkForwardRequest extends BacktestRequest {
   folds: number;
+}
+
+// strategy-fit matrix (which strategy fits which currency)
+export interface FitRequest {
+  symbols: string[];
+  timeframe: Timeframe;
+  cost_bps: number;
+  oos_frac: number;
+}
+export interface FitCell {
+  pair: string;
+  strategy: string;
+  sharpe: number | null;
+  return: number | null;
+  win_rate: number | null;
+}
+export interface FitResponse {
+  strategies: { id: string; name: string }[];
+  pairs: string[];
+  cells: FitCell[];
+  best: Record<string, string>;
+  timeframe: string;
+  cost_bps: number;
+  oos_frac: number;
 }

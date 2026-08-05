@@ -1075,3 +1075,19 @@ tr:hover td {
     animation: none;
   }
 }
+
+/* Strategy-fit matrix (Fit tab) */
+.fitmatrix { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.fitmatrix th, .fitmatrix td { padding: 8px 10px; text-align: center; border: 1px solid var(--line, #222); }
+.fitmatrix th { font-size: 12px; opacity: 0.8; font-weight: 600; }
+.fitmatrix .fitpair { text-align: left; font-weight: 600; }
+.fitmatrix .fitcell { font-weight: 600; }
+.fitmatrix .fitcell.best { outline: 2px solid var(--gold, #d8a24a); outline-offset: -2px; }
+.fitmatrix .fitstar { color: var(--gold, #d8a24a); }
+.fitmatrix .fitbest { font-size: 12px; opacity: 0.85; }
+
+/* per-model bar dropdown in Signals model settings */
+.settings-tf { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; opacity: 0.85; margin-right: 6px; }
+.settings-tf select { padding: 2px 4px; }
+/* per-model timeframe tag on a signal badge */
+.sigtf { opacity: 0.6; font-size: 0.82em; }

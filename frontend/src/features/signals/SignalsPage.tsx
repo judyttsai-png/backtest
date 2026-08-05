@@ -55,6 +55,9 @@ export function SignalsPage() {
   // Which strategies to include ([] in store = all).
   const signalModels = useUiStore((s) => s.signalModels);
   const setSignalModels = useUiStore((s) => s.setSignalModels);
+  // Per-model bar size ({} = use the page bar).
+  const signalTimeframes = useUiStore((s) => s.signalTimeframes);
+  const setSignalTimeframe = useUiStore((s) => s.setSignalTimeframe);
   const allIds = strategies.map((m) => m.id);
   const selected = signalModels.length ? signalModels.filter((id) => allIds.includes(id)) : allIds;
   const toggleModel = (id: string) => {
@@ -66,11 +69,18 @@ export function SignalsPage() {
     strategies.length > 0
       ? strategies
           .filter((m) => selected.includes(m.id))
-          .map((m) => ({ id: m.id, parameters: overrides[m.id] || {} }))
+          .map((m) => ({
+            id: m.id,
+            parameters: overrides[m.id] || {},
+            timeframe: signalTimeframes[m.id], // undefined → backend uses the page bar
+          }))
       : undefined;
 
   const q = useQuery({
-    queryKey: ["signals", symbols, barSize, JSON.stringify(overrides), selected.join(","), strategies.length],
+    queryKey: [
+      "signals", symbols, barSize, JSON.stringify(overrides),
+      selected.join(","), JSON.stringify(signalTimeframes), strategies.length,
+    ],
     queryFn: () => postSignals({ symbols: symbolList, timeframe: barSize, models }),
     enabled: symbolList.length > 0,
     refetchOnWindowFocus: false,
@@ -139,6 +149,10 @@ export function SignalsPage() {
           overrides={overrides}
           onChange={setOverride}
           onReset={resetOverrides}
+          timeframes={signalTimeframes}
+          defaultBar={barSize}
+          barSizes={BAR_SIZES}
+          onTimeframe={setSignalTimeframe}
         />
 
         <div className="hint" style={{ marginBottom: 14 }}>
@@ -184,6 +198,7 @@ function PairCard({ p }: { p: PairSignals }) {
             }
           >
             {arrow(s.direction)} {s.model}
+            {s.timeframe && <span className="sigtf"> {s.timeframe}</span>}
             {s.value != null && <span className="sigval"> {fmtVal(s)}</span>}
           </span>
         ))}

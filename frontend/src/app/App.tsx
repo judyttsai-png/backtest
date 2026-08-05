@@ -4,6 +4,7 @@ import { Masthead } from "../components/layout/Masthead";
 import { BacktestControls } from "../features/backtest/BacktestControls";
 import { BacktestResults } from "../features/backtest/BacktestResults";
 import { SignalsPage } from "../features/signals/SignalsPage";
+import { FitMatrixPage } from "../features/fit/FitMatrixPage";
 import { getStrategies } from "../api/endpoints";
 import { useUiStore } from "../state/uiStore";
 
@@ -30,9 +31,13 @@ export function App() {
             <BacktestResults />
           </main>
         </>
-      ) : (
+      ) : tab === "signals" ? (
         <main className="results fullspan">
           <SignalsPage />
+        </main>
+      ) : (
+        <main className="results fullspan">
+          <FitMatrixPage />
         </main>
       )}
     </div>

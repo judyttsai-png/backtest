@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db import SessionLocal, init_db
-from app.routers import backtests, data, health, signals, strategies, sweeps, walkforward
+from app.routers import backtests, data, fit, health, signals, strategies, sweeps, walkforward
 from app.seed import seed_strategy_models
 
 logging.basicConfig(level=logging.INFO)
@@ -76,6 +76,7 @@ app.include_router(signals.router)
 app.include_router(data.router)
 app.include_router(sweeps.router)
 app.include_router(walkforward.router)
+app.include_router(fit.router)
 
 
 # Single-origin serving: when a built frontend is present, serve it at "/" (added

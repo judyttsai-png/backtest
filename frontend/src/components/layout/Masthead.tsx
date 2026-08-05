@@ -42,6 +42,13 @@ export function Masthead({ backendOk, backendError }: Props) {
         >
           Signals
         </button>
+        <button
+          type="button"
+          className={`tabbtn ${tab === "fit" ? "on" : ""}`}
+          onClick={() => set("tab", "fit")}
+        >
+          Fit
+        </button>
       </nav>
       <div className="status">
         <span>

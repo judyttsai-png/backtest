@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { ExecutionMode, StrategyMeta, Timeframe } from "../types/api";
 
 export type Theme = "dark" | "light";
-export type Tab = "backtest" | "signals";
+export type Tab = "backtest" | "signals" | "fit";
 
 interface UiState {
   strategyId: string;
@@ -32,6 +32,8 @@ interface UiState {
   signalOverrides: Record<string, Record<string, number>>;
   // Which strategies the Signals tab includes ([] = all). Persisted.
   signalModels: string[];
+  // Per-model bar size on the Signals tab ({} = use the page's bar). Persisted.
+  signalTimeframes: Record<string, Timeframe>;
 
   activeRunId: string | null;
   activeSweepId: string | null;
@@ -43,6 +45,7 @@ interface UiState {
   setSignalOverride: (modelId: string, paramId: string, value: number) => void;
   resetSignalOverrides: () => void;
   setSignalModels: (ids: string[]) => void;
+  setSignalTimeframe: (modelId: string, tf: Timeframe) => void;
   setActiveRunId: (id: string | null) => void;
   setActiveSweepId: (id: string | null) => void;
 }
@@ -100,6 +103,16 @@ function initialSignalModels(): string[] {
   }
 }
 
+const SIGTF_KEY = "backtest-signal-timeframes";
+function initialSignalTimeframes(): Record<string, Timeframe> {
+  try {
+    const v = JSON.parse(localStorage.getItem(SIGTF_KEY) || "{}");
+    return v && typeof v === "object" ? v : {};
+  } catch {
+    return {};
+  }
+}
+
 export const useUiStore = create<UiState>((set) => ({
   strategyId: "sma",
   params: { fast: 10, slow: 40 },
@@ -124,6 +137,7 @@ export const useUiStore = create<UiState>((set) => ({
   tzMinutes: initialTz(),
   signalOverrides: initialOverrides(),
   signalModels: initialSignalModels(),
+  signalTimeframes: initialSignalTimeframes(),
 
   activeRunId: null,
   activeSweepId: null,
@@ -165,6 +179,16 @@ export const useUiStore = create<UiState>((set) => ({
         /* localStorage unavailable */
       }
       return { signalModels: ids };
+    }),
+  setSignalTimeframe: (modelId, tf) =>
+    set((s) => {
+      const next = { ...s.signalTimeframes, [modelId]: tf };
+      try {
+        localStorage.setItem(SIGTF_KEY, JSON.stringify(next));
+      } catch {
+        /* localStorage unavailable */
+      }
+      return { signalTimeframes: next };
     }),
   setActiveRunId: (id) => set(() => ({ activeRunId: id })),
   setActiveSweepId: (id) => set(() => ({ activeSweepId: id })),

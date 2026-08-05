@@ -6,6 +6,8 @@ import type {
   CandlesResponse,
   Coverage,
   EquityResponse,
+  FitRequest,
+  FitResponse,
   HeatmapResponse,
   MarkersResponse,
   Metrics,
@@ -55,3 +57,7 @@ export const createSweep = (req: SweepRequest) =>
 export const getSweepStatus = (id: string) => api.get<SweepStatus>(`/api/sweeps/${id}`);
 export const getHeatmap = (id: string, x: string, y: string, metric: string) =>
   api.get<HeatmapResponse>(`/api/sweeps/${id}/heatmap?x=${x}&y=${y}&metric=${metric}`);
+
+// strategy-fit matrix
+export const postFitMatrix = (req: FitRequest) =>
+  api.post<FitResponse>("/api/fit-matrix", req);
