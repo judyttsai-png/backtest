@@ -34,6 +34,8 @@ interface UiState {
   signalModels: string[];
   // Per-model bar size on the Signals tab ({} = use the page's bar). Persisted.
   signalTimeframes: Record<string, Timeframe>;
+  // Per-strategy parameter overrides for the Fit matrix ({} = defaults). Persisted.
+  fitOverrides: Record<string, Record<string, number>>;
 
   activeRunId: string | null;
   activeSweepId: string | null;
@@ -46,6 +48,8 @@ interface UiState {
   resetSignalOverrides: () => void;
   setSignalModels: (ids: string[]) => void;
   setSignalTimeframe: (modelId: string, tf: Timeframe) => void;
+  setFitOverride: (modelId: string, paramId: string, value: number) => void;
+  resetFitOverrides: () => void;
   setActiveRunId: (id: string | null) => void;
   setActiveSweepId: (id: string | null) => void;
 }
@@ -113,6 +117,15 @@ function initialSignalTimeframes(): Record<string, Timeframe> {
   }
 }
 
+const FITOVR_KEY = "backtest-fit-overrides";
+function initialFitOverrides(): Record<string, Record<string, number>> {
+  try {
+    return JSON.parse(localStorage.getItem(FITOVR_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
 export const useUiStore = create<UiState>((set) => ({
   strategyId: "sma",
   params: { fast: 10, slow: 40 },
@@ -138,6 +151,7 @@ export const useUiStore = create<UiState>((set) => ({
   signalOverrides: initialOverrides(),
   signalModels: initialSignalModels(),
   signalTimeframes: initialSignalTimeframes(),
+  fitOverrides: initialFitOverrides(),
 
   activeRunId: null,
   activeSweepId: null,
@@ -189,6 +203,28 @@ export const useUiStore = create<UiState>((set) => ({
         /* localStorage unavailable */
       }
       return { signalTimeframes: next };
+    }),
+  setFitOverride: (modelId, paramId, value) =>
+    set((s) => {
+      const next = {
+        ...s.fitOverrides,
+        [modelId]: { ...(s.fitOverrides[modelId] || {}), [paramId]: value },
+      };
+      try {
+        localStorage.setItem(FITOVR_KEY, JSON.stringify(next));
+      } catch {
+        /* localStorage unavailable */
+      }
+      return { fitOverrides: next };
+    }),
+  resetFitOverrides: () =>
+    set(() => {
+      try {
+        localStorage.setItem(FITOVR_KEY, "{}");
+      } catch {
+        /* localStorage unavailable */
+      }
+      return { fitOverrides: {} };
     }),
   setActiveRunId: (id) => set(() => ({ activeRunId: id })),
   setActiveSweepId: (id) => set(() => ({ activeSweepId: id })),

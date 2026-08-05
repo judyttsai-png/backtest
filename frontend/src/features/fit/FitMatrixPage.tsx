@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useUiStore } from "../../state/uiStore";
-import { postFitMatrix } from "../../api/endpoints";
+import { getStrategies, postFitMatrix } from "../../api/endpoints";
 import type { FitCell, FitResponse, Timeframe } from "../../types/api";
+import { ModelSettings } from "../signals/ModelSettings";
 
 const BARS: Timeframe[] = ["1d", "1h", "30m", "15m"];
 
@@ -34,9 +35,22 @@ export function FitMatrixPage() {
     .map((x) => x.trim().toUpperCase())
     .filter(Boolean);
 
+  // The matrix only scores single-asset strategies; expose their constants.
+  const strategiesQ = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
+  const singleStrategies = (strategiesQ.data ?? []).filter((m) => m.kind === "single");
+  const fitOverrides = useUiStore((s) => s.fitOverrides);
+  const setFitOverride = useUiStore((s) => s.setFitOverride);
+  const resetFitOverrides = useUiStore((s) => s.resetFitOverrides);
+
   const mut = useMutation({
     mutationFn: () =>
-      postFitMatrix({ symbols: symbolList, timeframe: barSize, cost_bps: cost, oos_frac: oos / 100 }),
+      postFitMatrix({
+        symbols: symbolList,
+        timeframe: barSize,
+        cost_bps: cost,
+        oos_frac: oos / 100,
+        params: fitOverrides,
+      }),
   });
   const data: FitResponse | undefined = mut.data;
 
@@ -137,11 +151,22 @@ export function FitMatrixPage() {
         </button>
       </div>
 
-      <div className="hint" style={{ marginBottom: 12 }}>
+      {singleStrategies.length > 0 && (
+        <ModelSettings
+          strategies={singleStrategies}
+          overrides={fitOverrides}
+          onChange={setFitOverride}
+          onReset={resetFitOverrides}
+          label="strategy constants — edit the assumptions the matrix uses"
+        />
+      )}
+
+      <div className="hint" style={{ marginBottom: 12, marginTop: 10 }}>
         Each cell is that strategy's out-of-sample net Sharpe on that pair. Green = works, red =
         loses; the ★ marks the best strategy for each currency. Intraday bars take longer to score.
-        Edit the pairs above (EM pairs are yfinance-daily and flattered by the low cost). Validate
-        with the walk-forward before trading off this.
+        Edit the pairs above and the strategy constants (default = each model's baseline). EM pairs
+        are yfinance-daily and flattered by the low cost. Validate with the walk-forward before
+        trading off this.
       </div>
 
       {mut.isError && (

@@ -256,6 +256,7 @@ export interface FitRequest {
   timeframe: Timeframe;
   cost_bps: number;
   oos_frac: number;
+  params?: Record<string, Record<string, number>>;
 }
 export interface FitCell {
   pair: string;

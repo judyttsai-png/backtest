@@ -32,6 +32,9 @@ class FitRequest(BaseModel):
     timeframe: str = "1d"
     cost_bps: float = 0.5
     oos_frac: float = 0.25
+    # Per-strategy parameter overrides: {strategy_id: {param: value}}. Missing
+    # strategies/params fall back to that strategy's defaults.
+    params: dict[str, dict[str, float]] = Field(default_factory=dict)
 
 
 def _round(x, n=3):
@@ -70,7 +73,7 @@ def fit_matrix(req: FitRequest, db: Session = Depends(get_db)):
                     close_panel=None, benchmark=None,
                 )
                 m = run_strategy_backtest(
-                    sid, {}, b,
+                    sid, req.params.get(sid, {}), b,
                     {"mode": "long_short", "cost_bps": req.cost_bps, "initial_capital": 1000},
                 ).metrics
                 cells.append({
