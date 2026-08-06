@@ -61,6 +61,20 @@ def _reading(model_id: str, sig, params: dict) -> tuple[float | None, str, float
     return None, "", None
 
 
+def _conviction(model_id: str, value, threshold, strength: float) -> float:
+    """A 0–1 signal-strength score, comparable across strategies (so a book can be
+    sized by it). Binary strategies (SMA/DMI) get a graded score from how far past
+    their trigger they are; magnitude strategies (mean reversion) use their own size."""
+    try:
+        if model_id == "dmi" and value is not None and threshold:
+            return max(0.0, min(1.0, (abs(value) - threshold) / threshold))  # ADX above floor
+        if model_id == "sma" and value is not None:
+            return max(0.0, min(1.0, abs(value) / 0.5))  # full at 0.5% fast-vs-slow spread
+    except Exception:
+        pass
+    return float(max(0.0, min(1.0, strength)))  # meanrev etc. already sized
+
+
 @router.post("")
 def compute_signals(req: SignalRequest, db: Session = Depends(get_db)):
     end = req.asof or datetime.now(timezone.utc)

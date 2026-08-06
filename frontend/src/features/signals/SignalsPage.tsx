@@ -72,10 +72,18 @@ export function SignalsPage() {
     if (!byPair.has(p.symbol)) byPair.set(p.symbol, []);
     byPair.get(p.symbol)!.push(p);
   }
+  // Conviction = the strategy's own bet size (|target|, 0–1). Sum the active ones
+  // so we can suggest a % of book proportional to how strong each signal is.
+  const totalConv =
+    (q.data?.pairs ?? []).reduce((a, r) => a + (r.direction !== 0 ? r.strength : 0), 0) || 1;
+
   const cards = [...byPair.entries()].map(([symbol, rows]) => {
     const net = rows.reduce((a, r) => a + Math.sign(r.direction), 0);
-    return { symbol, price: rows[0]?.price ?? null, rows, consensus: Math.sign(net) };
+    const conv = Math.max(...rows.map((r) => (r.direction !== 0 ? r.strength : 0)), 0);
+    return { symbol, price: rows[0]?.price ?? null, rows, consensus: Math.sign(net), conv, totalConv };
   });
+  // Strongest-conviction currencies first, so the best bets are at the top.
+  cards.sort((a, b) => b.conv - a.conv);
 
   // Adapt to PositionsPanel (one row per symbol; consensus of its strategies).
   const asPositionsSignals: SignalsResponse | undefined = q.data && {
@@ -206,8 +214,9 @@ function BasketPanel() {
   );
 }
 
-function CurrencyCard({ symbol, price, rows, consensus }:
-  { symbol: string; price: number | null; rows: PlaybookSignalPair[]; consensus: number }) {
+function CurrencyCard({ symbol, price, rows, consensus, totalConv }:
+  { symbol: string; price: number | null; rows: PlaybookSignalPair[]; consensus: number;
+    conv: number; totalConv: number }) {
   return (
     <div className={`sigcard ${cls(consensus)}`}>
       <div className="sigcard-head">
@@ -222,6 +231,7 @@ function CurrencyCard({ symbol, price, rows, consensus }:
             ? price * (1 - (dir > 0 ? 1 : -1) * (r.stop_pct / 100)) : null;
           const targetPx = price != null && r.target_pct != null && dir !== 0
             ? price * (1 + (dir > 0 ? 1 : -1) * (r.target_pct / 100)) : null;
+          const alloc = dir !== 0 ? (r.strength / totalConv) * 100 : 0;
           return (
             <div className="pbsig" key={`${r.strategy}-${r.timeframe}`}>
               <div className="pbsig-top">
@@ -230,10 +240,16 @@ function CurrencyCard({ symbol, price, rows, consensus }:
                 {r.value != null && <span className="pbsig-read">{fmtReading(r)}</span>}
               </div>
               {dir !== 0 && (
-                <div className="pbsig-tgt">
-                  <span className="neg">stop {fx(stopPx)}{r.stop_pct != null && <em> −{r.stop_pct}%</em>}</span>
-                  <span className="pos">target {fx(targetPx)}{r.target_pct != null && <em> +{r.target_pct}%</em>}</span>
-                </div>
+                <>
+                  <div className="conviction" title="signal strength (the strategy's own bet size) → suggested share of book">
+                    <span className="cv-bar"><span className={`cv-fill ${cls(dir)}`} style={{ width: `${Math.round(r.strength * 100)}%` }} /></span>
+                    <span className="cv-lbl">{Math.round(r.strength * 100)}% conviction · <b>{alloc.toFixed(0)}%</b> of book</span>
+                  </div>
+                  <div className="pbsig-tgt">
+                    <span className="neg">stop {fx(stopPx)}{r.stop_pct != null && <em> −{r.stop_pct}%</em>}</span>
+                    <span className="pos">target {fx(targetPx)}{r.target_pct != null && <em> +{r.target_pct}%</em>}</span>
+                  </div>
+                </>
               )}
             </div>
           );
