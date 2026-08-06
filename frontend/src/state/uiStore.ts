@@ -4,6 +4,16 @@ import type { ExecutionMode, StrategyMeta, Timeframe } from "../types/api";
 export type Theme = "dark" | "light";
 export type Tab = "backtest" | "signals" | "fit" | "playbook";
 
+// The Playbook is grouped by currency: each currency holds the set of strategies
+// you want to see for it, and each of those carries its own bar + constants.
+//   playbook = { AUDUSD: { meanrev: {timeframe, params}, sma: {timeframe, params} }, … }
+export interface PlaybookStrat {
+  timeframe: Timeframe;
+  params?: Record<string, number>;
+}
+export type PlaybookPair = Record<string, PlaybookStrat>; // strategyId -> config
+export type Playbook = Record<string, PlaybookPair>; // pair -> strategies
+
 interface UiState {
   strategyId: string;
   params: Record<string, number>;
@@ -36,9 +46,9 @@ interface UiState {
   signalTimeframes: Record<string, Timeframe>;
   // Per-strategy parameter overrides for the Fit matrix ({} = defaults). Persisted.
   fitOverrides: Record<string, Record<string, number>>;
-  // Per-currency strategy assignment (the Playbook): strategy, bar, and its own
-  // constants for that pair. Persisted.
-  playbook: Record<string, { strategy: string; timeframe: Timeframe; params?: Record<string, number> }>;
+  // The Playbook, grouped by currency (each currency -> selected strategies with
+  // their own bar + constants). Persisted.
+  playbook: Playbook;
 
   activeRunId: string | null;
   activeSweepId: string | null;
@@ -53,13 +63,11 @@ interface UiState {
   setSignalTimeframe: (modelId: string, tf: Timeframe) => void;
   setFitOverride: (modelId: string, paramId: string, value: number) => void;
   resetFitOverrides: () => void;
-  setPlaybookRow: (
-    pair: string,
-    patch: Partial<{ strategy: string; timeframe: Timeframe; params?: Record<string, number> }>,
-  ) => void;
-  setPlaybookParam: (pair: string, paramId: string, value: number) => void;
-  addPlaybookRow: (pair: string) => void;
-  removePlaybookRow: (pair: string) => void;
+  addPlaybookPair: (pair: string) => void;
+  removePlaybookPair: (pair: string) => void;
+  togglePlaybookStrategy: (pair: string, strategyId: string) => void;
+  setPlaybookStrategyTf: (pair: string, strategyId: string, tf: Timeframe) => void;
+  setPlaybookStrategyParam: (pair: string, strategyId: string, paramId: string, value: number) => void;
   setActiveRunId: (id: string | null) => void;
   setActiveSweepId: (id: string | null) => void;
 }
@@ -137,34 +145,47 @@ function initialFitOverrides(): Record<string, Record<string, number>> {
 }
 
 // Seeded from the strategy-fit matrix (daily OOS best per pair). Users edit it.
-const DEFAULT_PLAYBOOK: Record<string, { strategy: string; timeframe: Timeframe }> = {
-  AUDUSD: { strategy: "meanrev", timeframe: "1d" },
-  EURAUD: { strategy: "meanrev", timeframe: "1d" },
-  EURUSD: { strategy: "meanrev", timeframe: "1d" },
-  GBPUSD: { strategy: "meanrev", timeframe: "1d" },
-  EURGBP: { strategy: "meanrev", timeframe: "1d" },
-  EURCHF: { strategy: "meanrev", timeframe: "1d" },
-  CADJPY: { strategy: "meanrev", timeframe: "1d" },
-  USDCAD: { strategy: "sma", timeframe: "1d" },
-  NZDUSD: { strategy: "sma", timeframe: "1d" },
-  GBPJPY: { strategy: "sma", timeframe: "1d" },
-  AUDJPY: { strategy: "sma", timeframe: "1d" },
-  CHFJPY: { strategy: "sma", timeframe: "1d" },
-  NZDJPY: { strategy: "sma", timeframe: "1d" },
-  USDJPY: { strategy: "dmi", timeframe: "1d" },
-  EURJPY: { strategy: "dmi", timeframe: "1d" },
-  USDCHF: { strategy: "smacross", timeframe: "1d" },
-};
+const SEED: [string, string][] = [
+  ["AUDUSD", "meanrev"], ["EURAUD", "meanrev"], ["EURUSD", "meanrev"], ["GBPUSD", "meanrev"],
+  ["EURGBP", "meanrev"], ["EURCHF", "meanrev"], ["CADJPY", "meanrev"], ["USDCHF", "meanrev"],
+  ["USDCAD", "sma"], ["NZDUSD", "sma"], ["GBPJPY", "sma"], ["AUDJPY", "sma"],
+  ["CHFJPY", "sma"], ["NZDJPY", "sma"], ["USDJPY", "dmi"], ["EURJPY", "dmi"],
+];
+function seededPlaybook(): Playbook {
+  const pb: Playbook = {};
+  for (const [pair, strategy] of SEED) pb[pair] = { [strategy]: { timeframe: "1d" } };
+  return pb;
+}
+
 const PLAYBOOK_KEY = "backtest-playbook";
-function initialPlaybook(): Record<string, { strategy: string; timeframe: Timeframe }> {
+function initialPlaybook(): Playbook {
   try {
-    const v = localStorage.getItem(PLAYBOOK_KEY);
-    return v ? JSON.parse(v) : DEFAULT_PLAYBOOK;
+    const raw = localStorage.getItem(PLAYBOOK_KEY);
+    if (!raw) return seededPlaybook();
+    const parsed = JSON.parse(raw);
+    const pb: Playbook = {};
+    const add = (pair: string, sid: string, cfg: PlaybookStrat) => {
+      if (sid === "smacross") { sid = "meanrev"; cfg = { ...cfg, params: {} }; }
+      (pb[pair] ||= {})[sid] = { timeframe: cfg.timeframe || "1d", params: cfg.params };
+    };
+    if (Array.isArray(parsed)) {
+      // old list-of-rows format
+      for (const r of parsed) add(r.pair, r.strategy, { timeframe: r.timeframe, params: r.params });
+    } else if (parsed && typeof parsed === "object") {
+      for (const [pair, val] of Object.entries<any>(parsed)) {
+        if (val && typeof val.strategy === "string") {
+          add(pair, val.strategy, { timeframe: val.timeframe, params: val.params }); // old pair->{strategy,…}
+        } else if (val && typeof val === "object") {
+          for (const [sid, cfg] of Object.entries<any>(val)) add(pair, sid, cfg); // new nested
+        }
+      }
+    }
+    return Object.keys(pb).length ? pb : seededPlaybook();
   } catch {
-    return DEFAULT_PLAYBOOK;
+    return seededPlaybook();
   }
 }
-function savePlaybook(p: Record<string, { strategy: string; timeframe: Timeframe }>): void {
+function savePlaybook(p: Playbook): void {
   try {
     localStorage.setItem(PLAYBOOK_KEY, JSON.stringify(p));
   } catch {
@@ -273,37 +294,47 @@ export const useUiStore = create<UiState>((set) => ({
       }
       return { fitOverrides: {} };
     }),
-  setPlaybookRow: (pair, patch) =>
-    set((s) => {
-      const cur = s.playbook[pair] ?? { strategy: "meanrev", timeframe: "1d" as Timeframe };
-      // Changing strategy clears that pair's params (they belonged to the old model).
-      const cleared = patch.strategy && patch.strategy !== cur.strategy ? { params: {} } : {};
-      const next = { ...s.playbook, [pair]: { ...cur, ...patch, ...cleared } };
-      savePlaybook(next);
-      return { playbook: next };
-    }),
-  setPlaybookParam: (pair, paramId, value) =>
-    set((s) => {
-      const cur = s.playbook[pair] ?? { strategy: "meanrev", timeframe: "1d" as Timeframe };
-      const next = {
-        ...s.playbook,
-        [pair]: { ...cur, params: { ...(cur.params || {}), [paramId]: value } },
-      };
-      savePlaybook(next);
-      return { playbook: next };
-    }),
-  addPlaybookRow: (pair) =>
+  addPlaybookPair: (pair) =>
     set((s) => {
       const p = pair.trim().toUpperCase();
       if (!p || s.playbook[p]) return {};
-      const next = { ...s.playbook, [p]: { strategy: "meanrev", timeframe: "1d" as Timeframe } };
+      const next = { ...s.playbook, [p]: { meanrev: { timeframe: "1d" as Timeframe } } };
       savePlaybook(next);
       return { playbook: next };
     }),
-  removePlaybookRow: (pair) =>
+  removePlaybookPair: (pair) =>
     set((s) => {
       const next = { ...s.playbook };
       delete next[pair];
+      savePlaybook(next);
+      return { playbook: next };
+    }),
+  togglePlaybookStrategy: (pair, strategyId) =>
+    set((s) => {
+      const cur: PlaybookPair = { ...(s.playbook[pair] || {}) };
+      if (cur[strategyId]) {
+        delete cur[strategyId];
+      } else {
+        cur[strategyId] = { timeframe: "1d" };
+      }
+      const next = { ...s.playbook, [pair]: cur };
+      savePlaybook(next);
+      return { playbook: next };
+    }),
+  setPlaybookStrategyTf: (pair, strategyId, tf) =>
+    set((s) => {
+      const cur = s.playbook[pair]?.[strategyId];
+      if (!cur) return {};
+      const next = { ...s.playbook, [pair]: { ...s.playbook[pair], [strategyId]: { ...cur, timeframe: tf } } };
+      savePlaybook(next);
+      return { playbook: next };
+    }),
+  setPlaybookStrategyParam: (pair, strategyId, paramId, value) =>
+    set((s) => {
+      const cur = s.playbook[pair]?.[strategyId];
+      if (!cur) return {};
+      const upd = { ...cur, params: { ...(cur.params || {}), [paramId]: value } };
+      const next = { ...s.playbook, [pair]: { ...s.playbook[pair], [strategyId]: upd } };
       savePlaybook(next);
       return { playbook: next };
     }),

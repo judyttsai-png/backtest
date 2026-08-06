@@ -15,13 +15,6 @@ export const MODEL_INFO: Record<string, string[]> = {
     "Reverting back inside the z_enter band closes the trade — that's the natural exit.",
     "The edge is real but tiny per trade; validate out-of-sample (it survives mainly on daily range-bound pairs).",
   ],
-  smacross: [
-    "Classic golden-cross / death-cross: long when fast SMA is above slow SMA, short when below.",
-    "The crossover itself is the signal — a pure trend follower, held until the averages cross back.",
-    "Makes money in trends, bleeds via whipsaws in ranges — so it struggles on range-bound FX majors.",
-    "Different from SMA Divergence, which fades crossovers instead of following them.",
-    "Lags by design; on FX it wins mainly on the trendier pairs (e.g. some JPY/CHF crosses).",
-  ],
   dmi: [
     "Wilder's Directional Movement: +DI / −DI measure up- vs down-pressure from the bar's range.",
     "ADX measures trend strength (direction-agnostic).",
