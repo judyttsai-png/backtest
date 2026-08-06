@@ -135,12 +135,21 @@ function initialSignalTimeframes(): Record<string, Timeframe> {
   }
 }
 
+// Global, saved model constants (per strategy). Shared by the Backtest tab, the
+// Fit matrix, the Playbook and live Signals — one place, persisted across reloads.
 const FITOVR_KEY = "backtest-fit-overrides";
 function initialFitOverrides(): Record<string, Record<string, number>> {
   try {
     return JSON.parse(localStorage.getItem(FITOVR_KEY) || "{}");
   } catch {
     return {};
+  }
+}
+function saveFitOverrides(o: Record<string, Record<string, number>>): void {
+  try {
+    localStorage.setItem(FITOVR_KEY, JSON.stringify(o));
+  } catch {
+    /* localStorage unavailable */
   }
 }
 
@@ -195,7 +204,8 @@ function savePlaybook(p: Playbook): void {
 
 export const useUiStore = create<UiState>((set) => ({
   strategyId: "sma",
-  params: { fast: 10, slow: 40 },
+  // Seed the default strategy's params from the saved global constants.
+  params: { fast: 10, slow: 40, ...initialFitOverrides()["sma"] },
   symbols: "EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, NZDUSD, USDKRW, USDTWD, USDBRL, USDMXN",
   benchmark: "",
   timeframe: "1d",
@@ -225,12 +235,23 @@ export const useUiStore = create<UiState>((set) => ({
   activeSweepId: null,
 
   setStrategy: (meta) =>
-    set(() => {
+    set((s) => {
+      // Load this strategy's saved constants (falling back to its defaults).
       const params: Record<string, number> = {};
-      for (const p of meta.parameters) params[p.id] = p.default;
+      for (const p of meta.parameters) params[p.id] = s.fitOverrides[meta.id]?.[p.id] ?? p.default;
       return { strategyId: meta.id, params };
     }),
-  setParam: (id, value) => set((s) => ({ params: { ...s.params, [id]: value } })),
+  // Editing a Backtest-tab constant saves it to the global store, so it persists
+  // across reloads and stays in sync with the Fit / Playbook / Signals tabs.
+  setParam: (id, value) =>
+    set((s) => {
+      const next = {
+        ...s.fitOverrides,
+        [s.strategyId]: { ...(s.fitOverrides[s.strategyId] || {}), [id]: value },
+      };
+      saveFitOverrides(next);
+      return { params: { ...s.params, [id]: value }, fitOverrides: next };
+    }),
   set: (key, value) => set(() => ({ [key]: value }) as Partial<UiState>),
   toggleTheme: () =>
     set((s) => {
@@ -278,20 +299,14 @@ export const useUiStore = create<UiState>((set) => ({
         ...s.fitOverrides,
         [modelId]: { ...(s.fitOverrides[modelId] || {}), [paramId]: value },
       };
-      try {
-        localStorage.setItem(FITOVR_KEY, JSON.stringify(next));
-      } catch {
-        /* localStorage unavailable */
-      }
-      return { fitOverrides: next };
+      saveFitOverrides(next);
+      // keep the Backtest tab's live params in sync when editing the same model
+      const params = s.strategyId === modelId ? { ...s.params, [paramId]: value } : s.params;
+      return { fitOverrides: next, params };
     }),
   resetFitOverrides: () =>
     set(() => {
-      try {
-        localStorage.setItem(FITOVR_KEY, "{}");
-      } catch {
-        /* localStorage unavailable */
-      }
+      saveFitOverrides({});
       return { fitOverrides: {} };
     }),
   addPlaybookPair: (pair) =>

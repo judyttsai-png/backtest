@@ -41,7 +41,8 @@ export function PlaybookPage() {
   const [newPair, setNewPair] = useState("");
 
   const strategiesQ = useQuery({ queryKey: ["strategies"], queryFn: getStrategies });
-  const single = (strategiesQ.data ?? []).filter((m) => m.kind === "single");
+  const allStrategies = strategiesQ.data ?? [];
+  const single = allStrategies.filter((m) => m.kind === "single");
   const metaOf = (id: string) => single.find((m) => m.id === id);
 
   const pairs = Object.keys(playbook).sort();
@@ -101,10 +102,10 @@ export function PlaybookPage() {
         </button>
       </div>
 
-      {single.length > 0 && (
-        <ModelSettings strategies={single} overrides={globalParams} onChange={setGlobalParam}
+      {allStrategies.length > 0 && (
+        <ModelSettings strategies={allStrategies} overrides={globalParams} onChange={setGlobalParam}
           onReset={resetGlobalParams}
-          label="global constants — apply to every currency (override per strategy inside a card)" />
+          label="global model constants (saved) — every model incl. Velocity Crossover; used by backtests, signals & the fit matrix" />
       )}
 
       <div className="hint" style={{ margin: "10px 0" }}>
