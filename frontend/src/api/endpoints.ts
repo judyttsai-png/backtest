@@ -72,4 +72,7 @@ export const postPlaybookScore = (req: { items: PlaybookItem[]; cost_bps: number
 // playbook-driven live signals
 export const postPlaybookSignals = (req: {
   items: { pair: string; strategy: string; timeframe: string; params?: Record<string, number> }[];
+  atr_len?: number;
+  stop_mult?: number;
+  target_mult?: number;
 }) => api.post<PlaybookSignalsResponse>("/api/signals/playbook", req);

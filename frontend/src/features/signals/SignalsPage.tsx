@@ -17,6 +17,13 @@ const fmtReading = (p: PlaybookSignalPair): string => {
   return p.threshold != null ? `${v} vs ${p.threshold}` : v;
 };
 const fx = (v: number | null) => (v == null ? "—" : v.toPrecision(6).replace(/\.?0+$/, ""));
+const numFromLS = (key: string, fallback: number) => {
+  const v = Number(localStorage.getItem(key));
+  return Number.isFinite(v) && v > 0 ? v : fallback;
+};
+const saveNum = (key: string, v: number) => {
+  try { localStorage.setItem(key, String(v)); } catch { /* ignore */ }
+};
 
 /** Live recommendations, driven by the Playbook and grouped by currency: one card
  *  per currency shows each strategy you selected for it, with an ATR stop/target. */
@@ -26,6 +33,9 @@ export function SignalsPage() {
   const tzMinutes = useUiStore((s) => s.tzMinutes);
   const setTab = useUiStore((s) => s.set);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  // Stop / target width as multiples of ATR — saved so wider stops stick.
+  const [stopMult, setStopMult] = useState(() => numFromLS("backtest-stopmult", 2.5));
+  const [targetMult, setTargetMult] = useState(() => numFromLS("backtest-targetmult", 3.5));
 
   const items = Object.entries(playbook).flatMap(([pair, strats]) =>
     Object.entries(strats).map(([sid, cfg]) => ({
@@ -35,8 +45,8 @@ export function SignalsPage() {
   );
 
   const q = useQuery({
-    queryKey: ["playbook-signals", JSON.stringify(playbook), JSON.stringify(globalParams)],
-    queryFn: () => postPlaybookSignals({ items }),
+    queryKey: ["playbook-signals", JSON.stringify(playbook), JSON.stringify(globalParams), stopMult, targetMult],
+    queryFn: () => postPlaybookSignals({ items, stop_mult: stopMult, target_mult: targetMult }),
     enabled: items.length > 0,
     refetchOnWindowFocus: false,
     refetchInterval: autoRefresh ? REFRESH_MS : false,
@@ -77,6 +87,16 @@ export function SignalsPage() {
               : "pick strategies per currency on the Playbook tab"}
           </span>
           <span style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
+            <label className="sigctl" title="stop distance = this × the pair's ATR (higher = wider stop)">
+              stop ×
+              <input type="number" step="0.5" min="0.25" value={stopMult} style={{ width: 52 }}
+                onChange={(e) => { const v = Number(e.target.value) || 1; setStopMult(v); saveNum("backtest-stopmult", v); }} />
+            </label>
+            <label className="sigctl" title="target distance = this × the pair's ATR">
+              target ×
+              <input type="number" step="0.5" min="0.25" value={targetMult} style={{ width: 52 }}
+                onChange={(e) => { const v = Number(e.target.value) || 1; setTargetMult(v); saveNum("backtest-targetmult", v); }} />
+            </label>
             <button className="run secondary" style={{ width: "auto", padding: "9px 14px", margin: 0 }}
               onClick={() => setTab("tab", "playbook")}>✎ edit playbook</button>
             <label className="sigctl" title="auto-refresh every 30 min">
@@ -90,9 +110,10 @@ export function SignalsPage() {
         </div>
 
         <div className="hint" style={{ marginBottom: 14 }}>
-          One card per currency, showing every strategy you picked for it on the Playbook tab — each
-          with its own bar and a volatility-scaled (ATR) stop &amp; target. Validate out-of-sample
-          before trading.
+          One card per currency, each strategy with an ATR-scaled stop &amp; target. The stop is sized
+          to the <b>ATR of that strategy's bar</b> — so a 15m/30m bar gives a tight stop that's easily
+          hit intraday. Widen it with <b>stop ×</b> above, or put the pair on a <b>daily bar</b> (on the
+          Playbook tab) so the stop reflects daily ranges, not minutes.
         </div>
 
         {q.isError && <div className="banner err">signals error — {(q.error as Error).message}</div>}

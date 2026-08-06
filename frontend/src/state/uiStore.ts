@@ -49,8 +49,6 @@ interface UiState {
   // The Playbook, grouped by currency (each currency -> selected strategies with
   // their own bar + constants). Persisted.
   playbook: Playbook;
-  // Named presets: a saved snapshot of constants + playbook you can reload. Persisted.
-  presets: Record<string, Preset>;
 
   activeRunId: string | null;
   activeSweepId: string | null;
