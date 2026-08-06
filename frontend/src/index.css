@@ -1138,3 +1138,16 @@ tr:hover td {
 .pbsig-tgt .pos { color: var(--green, #2ead7d); }
 .pbsig-tgt .neg { color: var(--red, #e05a5a); }
 .pbsig-tgt em { font-style: normal; opacity: 0.65; font-size: 11px; margin-left: 3px; }
+
+/* Velcross basket panel */
+.basketcols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.basket-head { font-size: 11px; letter-spacing: 1px; font-weight: 700; margin-bottom: 6px; }
+.basket-head.sig-long { color: var(--green, #2ead7d); }
+.basket-head.sig-short { color: var(--red, #e05a5a); }
+.basket-row { display: flex; align-items: center; gap: 10px; padding: 3px 0; font-family: var(--mono, monospace); font-variant-numeric: tabular-nums; }
+.basket-row .bpair { width: 66px; font-size: 12px; }
+.basket-row .bbar { flex: 1; height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden; }
+.basket-row .bfill { display: block; height: 100%; border-radius: 4px; }
+.basket-row .bfill.long { background: var(--green, #2ead7d); }
+.basket-row .bfill.short { background: var(--red, #e05a5a); }
+.basket-row .bw { width: 48px; text-align: right; font-size: 12px; }

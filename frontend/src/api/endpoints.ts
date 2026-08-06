@@ -8,6 +8,7 @@ import type {
   EquityResponse,
   FitRequest,
   FitResponse,
+  BasketResponse,
   PlaybookItem,
   PlaybookScoreResponse,
   PlaybookSignalsResponse,
@@ -76,3 +77,7 @@ export const postPlaybookSignals = (req: {
   stop_mult?: number;
   target_mult?: number;
 }) => api.post<PlaybookSignalsResponse>("/api/signals/playbook", req);
+
+// velocity-crossover basket (current ranking)
+export const postBasket = (req: { symbols: string[]; timeframe?: string; params?: Record<string, number> }) =>
+  api.post<BasketResponse>("/api/signals/basket", req);

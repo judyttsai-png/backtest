@@ -318,3 +318,19 @@ export interface PlaybookSignalsResponse {
   stop_mult: number;
   target_mult: number;
 }
+
+// velocity-crossover basket (cross-sectional current ranking)
+export interface BasketRow {
+  symbol: string;
+  weight: number;
+  direction: number;
+  price: number | null;
+}
+export interface BasketResponse {
+  asof: string;
+  timeframe: string;
+  rows: BasketRow[];
+  long_count: number;
+  short_count: number;
+  gross: number;
+}

@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUiStore } from "../../state/uiStore";
-import { postPlaybookSignals } from "../../api/endpoints";
-import type { PlaybookSignalPair, SignalsResponse } from "../../types/api";
+import { postPlaybookSignals, postBasket } from "../../api/endpoints";
+import type { BasketResponse, PlaybookSignalPair, SignalsResponse } from "../../types/api";
 import { PositionsPanel } from "./PositionsPanel";
 import { fmtInstant, tzLabel } from "../../lib/time";
+
+// Liquid majors + crosses velcross ranks across (EM excluded — breaks cross-section).
+const BASKET_UNIVERSE = [
+  "EURUSD", "GBPUSD", "USDJPY", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD", "EURGBP",
+  "EURJPY", "GBPJPY", "EURCHF", "AUDJPY", "EURAUD", "CADJPY", "CHFJPY", "NZDJPY",
+];
 
 const label = (d: number) => (d > 0 ? "LONG" : d < 0 ? "SHORT" : "NEUTRAL");
 const cls = (d: number) => (d > 0 ? "sig-long" : d < 0 ? "sig-short" : "sig-flat");
@@ -17,12 +23,16 @@ const fmtReading = (p: PlaybookSignalPair): string => {
   return p.threshold != null ? `${v} vs ${p.threshold}` : v;
 };
 const fx = (v: number | null) => (v == null ? "—" : v.toPrecision(6).replace(/\.?0+$/, ""));
-const numFromLS = (key: string, fallback: number) => {
-  const v = Number(localStorage.getItem(key));
-  return Number.isFinite(v) && v > 0 ? v : fallback;
+const saveStr = (key: string, v: string) => {
+  try { localStorage.setItem(key, v); } catch { /* ignore */ }
 };
-const saveNum = (key: string, v: number) => {
-  try { localStorage.setItem(key, String(v)); } catch { /* ignore */ }
+
+// Stop / target width as multiples of the pair's DAILY ATR.
+type RiskLevel = "low" | "medium" | "high";
+const RISK: Record<RiskLevel, { stop: number; target: number; note: string }> = {
+  low: { stop: 1.5, target: 2.0, note: "tight stop · smallest loss per trade, more stop-outs" },
+  medium: { stop: 2.5, target: 3.5, note: "balanced room vs risk" },
+  high: { stop: 4.0, target: 6.0, note: "wide stop · rides noise, larger loss if wrong" },
 };
 
 /** Live recommendations, driven by the Playbook and grouped by currency: one card
@@ -33,9 +43,13 @@ export function SignalsPage() {
   const tzMinutes = useUiStore((s) => s.tzMinutes);
   const setTab = useUiStore((s) => s.set);
   const [autoRefresh, setAutoRefresh] = useState(false);
-  // Stop / target width as multiples of ATR — saved so wider stops stick.
-  const [stopMult, setStopMult] = useState(() => numFromLS("backtest-stopmult", 2.5));
-  const [targetMult, setTargetMult] = useState(() => numFromLS("backtest-targetmult", 3.5));
+  // Risk profile sets stop/target width (× daily ATR). Saved across reloads.
+  const [risk, setRisk] = useState<RiskLevel>(() => {
+    const v = localStorage.getItem("backtest-risk");
+    return v === "low" || v === "medium" || v === "high" ? v : "medium";
+  });
+  const { stop: stopMult, target: targetMult } = RISK[risk];
+  const chooseRisk = (r: RiskLevel) => { setRisk(r); saveStr("backtest-risk", r); };
 
   const items = Object.entries(playbook).flatMap(([pair, strats]) =>
     Object.entries(strats).map(([sid, cfg]) => ({
@@ -87,16 +101,16 @@ export function SignalsPage() {
               : "pick strategies per currency on the Playbook tab"}
           </span>
           <span style={{ marginLeft: "auto", display: "flex", gap: 12, alignItems: "center" }}>
-            <label className="sigctl" title="stop distance = this × the pair's ATR (higher = wider stop)">
-              stop ×
-              <input type="number" step="0.5" min="0.25" value={stopMult} style={{ width: 52 }}
-                onChange={(e) => { const v = Number(e.target.value) || 1; setStopMult(v); saveNum("backtest-stopmult", v); }} />
-            </label>
-            <label className="sigctl" title="target distance = this × the pair's ATR">
-              target ×
-              <input type="number" step="0.5" min="0.25" value={targetMult} style={{ width: 52 }}
-                onChange={(e) => { const v = Number(e.target.value) || 1; setTargetMult(v); saveNum("backtest-targetmult", v); }} />
-            </label>
+            <span className="sigctl" title={`stop ${stopMult}× / target ${targetMult}× daily ATR — ${RISK[risk].note}`}>
+              risk
+              <span className="seg" style={{ maxWidth: 210 }}>
+                {(["low", "medium", "high"] as RiskLevel[]).map((r) => (
+                  <button key={r} className={risk === r ? "on" : ""} onClick={() => chooseRisk(r)}>
+                    {r === "low" ? "Low" : r === "medium" ? "Med" : "High"}
+                  </button>
+                ))}
+              </span>
+            </span>
             <button className="run secondary" style={{ width: "auto", padding: "9px 14px", margin: 0 }}
               onClick={() => setTab("tab", "playbook")}>✎ edit playbook</button>
             <label className="sigctl" title="auto-refresh every 30 min">
@@ -110,10 +124,10 @@ export function SignalsPage() {
         </div>
 
         <div className="hint" style={{ marginBottom: 14 }}>
-          One card per currency, each strategy with an ATR-scaled stop &amp; target. The stop is sized
-          to the <b>ATR of that strategy's bar</b> — so a 15m/30m bar gives a tight stop that's easily
-          hit intraday. Widen it with <b>stop ×</b> above, or put the pair on a <b>daily bar</b> (on the
-          Playbook tab) so the stop reflects daily ranges, not minutes.
+          One card per currency, each strategy with a stop &amp; target sized to the pair's <b>daily</b>{" "}
+          ATR (so intraday signals still get a sensible day-range stop, not a 15-minute one). The{" "}
+          <b>risk</b> toggle sets the width: Low {RISK.low.stop}× / Med {RISK.medium.stop}× / High{" "}
+          {RISK.high.stop}× ATR. Validate out-of-sample before trading.
         </div>
 
         {q.isError && <div className="banner err">signals error — {(q.error as Error).message}</div>}
@@ -126,8 +140,69 @@ export function SignalsPage() {
           {cards.map((c) => <CurrencyCard key={c.symbol} {...c} />)}
         </div>
       </div>
+      <BasketPanel />
       <PositionsPanel signals={asPositionsSignals} />
     </>
+  );
+}
+
+/** Velocity Crossover is cross-sectional (ranks the whole basket), so it gets its
+ *  own panel: the pairs it currently favors long vs short. */
+function BasketPanel() {
+  const velParams = useUiStore((s) => s.fitOverrides.velcross || {});
+  const tzMinutes = useUiStore((s) => s.tzMinutes);
+  const q = useQuery({
+    queryKey: ["basket", JSON.stringify(velParams)],
+    queryFn: () => postBasket({ symbols: BASKET_UNIVERSE, timeframe: "1d", params: velParams }),
+    refetchOnWindowFocus: false,
+  });
+  const d: BasketResponse | undefined = q.data;
+  const longs = (d?.rows ?? []).filter((r) => r.direction > 0);
+  const shorts = (d?.rows ?? []).filter((r) => r.direction < 0).reverse();
+  return (
+    <section className="panel" style={{ marginTop: 18 }}>
+      <div className="phead">
+        <span className="ptitle">Velocity Crossover · basket ranking</span>
+        <span className="psub">
+          {d ? `${d.long_count} long · ${d.short_count} short · as of ${fmtInstant(d.asof, tzMinutes)}`
+            : q.isFetching ? "ranking the basket…" : "cross-sectional — ranks all pairs together"}
+        </span>
+        <button className="run secondary" style={{ marginLeft: "auto", width: "auto", padding: "9px 16px" }}
+          onClick={() => q.refetch()} disabled={q.isFetching}>
+          {q.isFetching ? "…" : "↻"}
+        </button>
+      </div>
+      <div className="hint" style={{ marginBottom: 10 }}>
+        Velcross doesn't make a per-currency call — it ranks the whole basket and holds the strongest
+        long / weakest short. Tune its constants (incl. momentum vs reversion) in the Playbook tab's
+        global editor. Sizes are its target weights.
+      </div>
+      {q.isError && <div className="banner err">basket error — {(q.error as Error).message}</div>}
+      <div className="basketcols">
+        <div>
+          <div className="basket-head sig-long">LONG</div>
+          {longs.length === 0 && <div className="hint">none</div>}
+          {longs.map((r) => (
+            <div className="basket-row" key={r.symbol}>
+              <span className="bpair">{r.symbol}</span>
+              <span className="bbar"><span className="bfill long" style={{ width: `${Math.min(100, Math.abs(r.weight) * 300)}%` }} /></span>
+              <span className="bw">{(r.weight * 100).toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div className="basket-head sig-short">SHORT</div>
+          {shorts.length === 0 && <div className="hint">none</div>}
+          {shorts.map((r) => (
+            <div className="basket-row" key={r.symbol}>
+              <span className="bpair">{r.symbol}</span>
+              <span className="bbar"><span className="bfill short" style={{ width: `${Math.min(100, Math.abs(r.weight) * 300)}%` }} /></span>
+              <span className="bw">{(r.weight * 100).toFixed(1)}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
