@@ -305,6 +305,7 @@ export interface PlaybookSignalPair {
   timeframe: string;
   direction: number; // -1 short, 0 flat, +1 long
   strength: number;
+  conviction: number; // 0–1 comparable signal strength across strategies
   value: number | null;
   unit: string;
   threshold: number | null;

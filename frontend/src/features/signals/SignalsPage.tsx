@@ -23,6 +23,7 @@ const fmtReading = (p: PlaybookSignalPair): string => {
   return p.threshold != null ? `${v} vs ${p.threshold}` : v;
 };
 const fx = (v: number | null) => (v == null ? "—" : v.toPrecision(6).replace(/\.?0+$/, ""));
+const EMPTY_PARAMS: Record<string, number> = {}; // stable ref for zustand selectors
 const saveStr = (key: string, v: string) => {
   try { localStorage.setItem(key, v); } catch { /* ignore */ }
 };
@@ -75,11 +76,11 @@ export function SignalsPage() {
   // Conviction = the strategy's own bet size (|target|, 0–1). Sum the active ones
   // so we can suggest a % of book proportional to how strong each signal is.
   const totalConv =
-    (q.data?.pairs ?? []).reduce((a, r) => a + (r.direction !== 0 ? r.strength : 0), 0) || 1;
+    (q.data?.pairs ?? []).reduce((a, r) => a + (r.direction !== 0 ? r.conviction : 0), 0) || 1;
 
   const cards = [...byPair.entries()].map(([symbol, rows]) => {
     const net = rows.reduce((a, r) => a + Math.sign(r.direction), 0);
-    const conv = Math.max(...rows.map((r) => (r.direction !== 0 ? r.strength : 0)), 0);
+    const conv = Math.max(...rows.map((r) => (r.direction !== 0 ? r.conviction : 0)), 0);
     return { symbol, price: rows[0]?.price ?? null, rows, consensus: Math.sign(net), conv, totalConv };
   });
   // Strongest-conviction currencies first, so the best bets are at the top.
@@ -132,10 +133,11 @@ export function SignalsPage() {
         </div>
 
         <div className="hint" style={{ marginBottom: 14 }}>
-          One card per currency, each strategy with a stop &amp; target sized to the pair's <b>daily</b>{" "}
-          ATR (so intraday signals still get a sensible day-range stop, not a 15-minute one). The{" "}
-          <b>risk</b> toggle sets the width: Low {RISK.low.stop}× / Med {RISK.medium.stop}× / High{" "}
-          {RISK.high.stop}× ATR. Validate out-of-sample before trading.
+          Sorted <b>strongest signal first</b>. Each shows a <b>conviction</b> bar (how far past its
+          trigger — bigger = stronger) and a suggested <b>% of book</b> (share proportional to
+          conviction). Put more into the high-conviction calls, less into the weak ones. Stops use the
+          pair's <b>daily</b> ATR; the <b>risk</b> toggle sets width (Low {RISK.low.stop}× / Med{" "}
+          {RISK.medium.stop}× / High {RISK.high.stop}×). Validate out-of-sample before trading.
         </div>
 
         {q.isError && <div className="banner err">signals error — {(q.error as Error).message}</div>}
@@ -157,7 +159,7 @@ export function SignalsPage() {
 /** Velocity Crossover is cross-sectional (ranks the whole basket), so it gets its
  *  own panel: the pairs it currently favors long vs short. */
 function BasketPanel() {
-  const velParams = useUiStore((s) => s.fitOverrides.velcross || {});
+  const velParams = useUiStore((s) => s.fitOverrides.velcross) ?? EMPTY_PARAMS;
   const tzMinutes = useUiStore((s) => s.tzMinutes);
   const q = useQuery({
     queryKey: ["basket", JSON.stringify(velParams)],
@@ -231,7 +233,7 @@ function CurrencyCard({ symbol, price, rows, consensus, totalConv }:
             ? price * (1 - (dir > 0 ? 1 : -1) * (r.stop_pct / 100)) : null;
           const targetPx = price != null && r.target_pct != null && dir !== 0
             ? price * (1 + (dir > 0 ? 1 : -1) * (r.target_pct / 100)) : null;
-          const alloc = dir !== 0 ? (r.strength / totalConv) * 100 : 0;
+          const alloc = dir !== 0 ? (r.conviction / totalConv) * 100 : 0;
           return (
             <div className="pbsig" key={`${r.strategy}-${r.timeframe}`}>
               <div className="pbsig-top">
@@ -242,8 +244,8 @@ function CurrencyCard({ symbol, price, rows, consensus, totalConv }:
               {dir !== 0 && (
                 <>
                   <div className="conviction" title="signal strength (the strategy's own bet size) → suggested share of book">
-                    <span className="cv-bar"><span className={`cv-fill ${cls(dir)}`} style={{ width: `${Math.round(r.strength * 100)}%` }} /></span>
-                    <span className="cv-lbl">{Math.round(r.strength * 100)}% conviction · <b>{alloc.toFixed(0)}%</b> of book</span>
+                    <span className="cv-bar"><span className={`cv-fill ${cls(dir)}`} style={{ width: `${Math.round(r.conviction * 100)}%` }} /></span>
+                    <span className="cv-lbl">{Math.round(r.conviction * 100)}% conviction · <b>{alloc.toFixed(0)}%</b> of book</span>
                   </div>
                   <div className="pbsig-tgt">
                     <span className="neg">stop {fx(stopPx)}{r.stop_pct != null && <em> −{r.stop_pct}%</em>}</span>

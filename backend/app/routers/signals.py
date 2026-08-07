@@ -290,6 +290,7 @@ def playbook_signals(req: PlaybookSignalRequest, db: Session = Depends(get_db)):
                 "timeframe": tf,
                 "direction": _direction(val),
                 "strength": round(abs(val), 4),
+                "conviction": round(_conviction(strat.id, value, threshold, abs(val)), 3),
                 "value": value,
                 "unit": unit,
                 "threshold": threshold,
