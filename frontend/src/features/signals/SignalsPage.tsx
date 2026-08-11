@@ -28,12 +28,13 @@ const saveStr = (key: string, v: string) => {
   try { localStorage.setItem(key, v); } catch { /* ignore */ }
 };
 
-// Stop / target width as multiples of the pair's DAILY ATR.
+// Stop / target width as *fractions* of the pair's DAILY ATR (kept conservative:
+// even "high" is only ~1 day's range). Target ≈ 2× the stop (2:1 reward:risk).
 type RiskLevel = "low" | "medium" | "high";
 const RISK: Record<RiskLevel, { stop: number; target: number; note: string }> = {
-  low: { stop: 1.5, target: 2.0, note: "tight stop · smallest loss per trade, more stop-outs" },
-  medium: { stop: 2.5, target: 3.5, note: "balanced room vs risk" },
-  high: { stop: 4.0, target: 6.0, note: "wide stop · rides noise, larger loss if wrong" },
+  low: { stop: 0.4, target: 0.8, note: "very tight · ~0.4 of a daily range · smallest loss, more stop-outs" },
+  medium: { stop: 0.7, target: 1.4, note: "conservative · a stop inside a typical day's move" },
+  high: { stop: 1.2, target: 2.4, note: "roomier · about one full day's range" },
 };
 
 /** Live recommendations, driven by the Playbook and grouped by currency: one card
@@ -67,6 +68,21 @@ export function SignalsPage() {
     refetchInterval: autoRefresh ? REFRESH_MS : false,
   });
 
+  // Velocity-Crossover basket score per currency (same query the basket panel uses
+  // → React Query dedupes it). Normalize |weight| to 0–100% so it's comparable.
+  const velParams = useUiStore((s) => s.fitOverrides.velcross) ?? EMPTY_PARAMS;
+  const basketQ = useQuery({
+    queryKey: ["basket", JSON.stringify(velParams)],
+    queryFn: () => postBasket({ symbols: BASKET_UNIVERSE, timeframe: "1d", params: velParams }),
+    refetchOnWindowFocus: false,
+  });
+  const velByPair: Record<string, { dir: number; pct: number }> = {};
+  {
+    const rows = basketQ.data?.rows ?? [];
+    const maxW = Math.max(1e-9, ...rows.map((r) => Math.abs(r.weight)));
+    rows.forEach((r) => (velByPair[r.symbol] = { dir: r.direction, pct: (Math.abs(r.weight) / maxW) * 100 }));
+  }
+
   // Group the flat per-strategy results into one card per currency.
   const byPair = new Map<string, PlaybookSignalPair[]>();
   for (const p of q.data?.pairs ?? []) {
@@ -81,7 +97,8 @@ export function SignalsPage() {
   const cards = [...byPair.entries()].map(([symbol, rows]) => {
     const net = rows.reduce((a, r) => a + Math.sign(r.direction), 0);
     const conv = Math.max(...rows.map((r) => (r.direction !== 0 ? r.conviction : 0)), 0);
-    return { symbol, price: rows[0]?.price ?? null, rows, consensus: Math.sign(net), conv, totalConv };
+    return { symbol, price: rows[0]?.price ?? null, rows, consensus: Math.sign(net), conv, totalConv,
+             vel: velByPair[symbol] };
   });
   // Strongest-conviction currencies first, so the best bets are at the top.
   cards.sort((a, b) => b.conv - a.conv);
@@ -216,9 +233,9 @@ function BasketPanel() {
   );
 }
 
-function CurrencyCard({ symbol, price, rows, consensus, totalConv }:
+function CurrencyCard({ symbol, price, rows, consensus, totalConv, vel }:
   { symbol: string; price: number | null; rows: PlaybookSignalPair[]; consensus: number;
-    conv: number; totalConv: number }) {
+    conv: number; totalConv: number; vel?: { dir: number; pct: number } }) {
   return (
     <div className={`sigcard ${cls(consensus)}`}>
       <div className="sigcard-head">
@@ -256,6 +273,18 @@ function CurrencyCard({ symbol, price, rows, consensus, totalConv }:
             </div>
           );
         })}
+        {vel && vel.dir !== 0 && (
+          <div className="pbsig">
+            <div className="pbsig-top">
+              <span className={`sigbadge ${cls(vel.dir)}`}>{arrow(vel.dir)} {label(vel.dir)}</span>
+              <span className="pbsig-name">Velocity Crossover · basket</span>
+            </div>
+            <div className="conviction" title="velcross basket rank for this currency (100% = strongest in the book)">
+              <span className="cv-bar"><span className={`cv-fill ${cls(vel.dir)}`} style={{ width: `${Math.round(vel.pct)}%` }} /></span>
+              <span className="cv-lbl">{Math.round(vel.pct)}% score</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

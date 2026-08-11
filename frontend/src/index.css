@@ -1161,3 +1161,7 @@ tr:hover td {
 .conviction .cv-fill.sig-flat { background: var(--faint, #5c646f); }
 .conviction .cv-lbl { font-family: var(--mono, monospace); font-size: 10.5px; color: var(--muted, #8a93a0); white-space: nowrap; }
 .conviction .cv-lbl b { color: var(--ink, #e8eaed); }
+
+/* Velcross basket score line on each currency card */
+.velscore { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line, #23272f); }
+.velscore .cv-lbl { font-family: var(--mono, monospace); font-size: 11px; color: var(--muted, #8a93a0); }
