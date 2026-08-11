@@ -1,0 +1,1055 @@
+<title>AI Compute Supply Chain — TSMC · Broadcom · AMD · Micron · Meta</title>
+<style>
+  :root {
+    --bg: #e9edf1; --surface: #ffffff; --surface-2: #f3f6f9;
+    --ink: #0e141b; --muted: #566270; --faint: #8592a0;
+    --line: #d3dae1; --line-strong: #b9c3cd;
+    --flow: #e08a1e; --flow-soft: #f6b24a;
+    --filed: #1f9d76; --official: #3f7fd6;
+    --t0: #5f82c4; --t1: #9a6fd0; --t2: #1fa891; --t3: #7d8894; --t4: #d8783a;
+    --shadow: 0 1px 2px rgba(16,24,32,.06), 0 8px 24px rgba(16,24,32,.06);
+    --font-d: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+    --font-b: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-m: ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0e13; --surface: #141b23; --surface-2: #0f151c;
+      --ink: #e9eff5; --muted: #93a1af; --faint: #6b7a89;
+      --line: #232d38; --line-strong: #33404d;
+      --flow: #f5a524; --flow-soft: #f7b74e; --filed: #35c39a; --official: #6aa6f5;
+      --t0: #7ea0e0; --t1: #b48ee6; --t2: #35c3aa; --t3: #93a0ad; --t4: #ec9558;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #e9edf1; --surface: #ffffff; --surface-2: #f3f6f9;
+    --ink: #0e141b; --muted: #566270; --faint: #8592a0;
+    --line: #d3dae1; --line-strong: #b9c3cd;
+    --flow: #e08a1e; --flow-soft: #f6b24a; --filed: #1f9d76; --official: #3f7fd6;
+    --t0: #5f82c4; --t1: #9a6fd0; --t2: #1fa891; --t3: #7d8894; --t4: #d8783a;
+    --shadow: 0 1px 2px rgba(16,24,32,.06), 0 8px 24px rgba(16,24,32,.06);
+  }
+  :root[data-theme="dark"] {
+    --bg: #0a0e13; --surface: #141b23; --surface-2: #0f151c;
+    --ink: #e9eff5; --muted: #93a1af; --faint: #6b7a89;
+    --line: #232d38; --line-strong: #33404d;
+    --flow: #f5a524; --flow-soft: #f7b74e; --filed: #35c39a; --official: #6aa6f5;
+    --t0: #7ea0e0; --t1: #b48ee6; --t2: #35c3aa; --t3: #93a0ad; --t4: #ec9558;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-b); line-height: 1.5;
+    -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 34px 22px 60px; }
+
+  header.head { margin-bottom: 18px; }
+  .eyebrow { font-family: var(--font-m); font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--flow); font-weight: 600; }
+  h1 { font-family: var(--font-d); font-weight: 800; letter-spacing: -.02em; text-wrap: balance;
+    font-size: clamp(24px, 3.4vw, 37px); margin: 6px 0 8px; line-height: 1.05; }
+  .lede { color: var(--muted); max-width: 74ch; font-size: 15px; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; margin: 18px 0 6px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tab { font-family: var(--font-d); font-weight: 600; font-size: 13.5px; letter-spacing: -.01em;
+    padding: 7px 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface);
+    color: var(--muted); cursor: pointer; transition: .15s; }
+  .tab:hover { color: var(--ink); border-color: var(--faint); }
+  .tab[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .tab .tk { font-family: var(--font-m); font-size: 11px; opacity: .7; margin-left: 6px; }
+
+  .seg { display: inline-flex; align-items: center; gap: 0; border: 1px solid var(--line-strong); border-radius: 999px;
+    overflow: hidden; background: var(--surface); }
+  .seg button { font-family: var(--font-b); font-size: 12.5px; font-weight: 600; padding: 6px 13px; border: 0;
+    background: transparent; color: var(--muted); cursor: pointer; transition: .15s; }
+  .seg button[aria-pressed="true"] { background: var(--filed); color: #fff; }
+  .seg .lbl { font-family: var(--font-m); font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--faint); padding-right: 4px; }
+
+  .legends { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 12px 2px 8px; color: var(--muted); font-size: 12px; align-items: center; }
+  .legends .grp { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+  .legends span { display: inline-flex; align-items: center; gap: 7px; }
+  .legends i { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .legends .ln { width: 24px; height: 0; border-top: 2px solid var(--faint); display: inline-block; }
+  .legends .ln.dash { border-top-style: dashed; }
+  .legends .ln.dot { border-top-style: dotted; opacity: .6; }
+  .legends .sep { width: 1px; height: 14px; background: var(--line-strong); }
+
+  .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface);
+    box-shadow: var(--shadow); }
+  .canvas { position: relative; min-width: 1200px; padding: 26px 20px 30px; }
+  .tiers { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 0 56px; align-items: center; }
+  .col { display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+  .col-h { font-family: var(--font-m); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--faint); text-align: center; margin-bottom: 2px; }
+
+  .node { position: relative; background: var(--surface-2); border: 1px solid var(--line-strong);
+    border-radius: 9px; padding: 7px 10px; cursor: pointer; transition: transform .15s, box-shadow .15s, opacity .2s;
+    border-left: 3px solid var(--tier); }
+  .node:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .node .nm { font-family: var(--font-d); font-weight: 700; font-size: 13px; letter-spacing: -.01em;
+    display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .node .nm .tk { font-family: var(--font-m); font-size: 10px; color: var(--faint); font-weight: 500; }
+  .node .sub { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+  .node .share { font-family: var(--font-m); font-size: 9.5px; margin-top: 3px; color: var(--t2);
+    background: color-mix(in srgb, var(--t2) 13%, transparent); border-radius: 4px; padding: 1px 5px; display: inline-block; }
+  .node.focus { background: color-mix(in srgb, var(--tier) 15%, var(--surface));
+    border-color: var(--tier); box-shadow: 0 0 0 1px var(--tier) inset; }
+  .node.focus .nm { color: var(--ink); }
+  .node.star .nm::after { content: "★"; color: var(--flow); font-size: 11px; margin-left: 2px; }
+
+  .node.orphan { opacity: .34; }
+  .risk-badge { position: absolute; top: -8px; right: -7px; font-size: 13px; display: none; filter: saturate(1.3); }
+  .canvas.risk-mode .node[data-risk] .risk-badge { display: block; }
+  .canvas.risk-mode .node[data-risk="1"] { box-shadow: 0 0 0 1.5px #d8b23e; }
+  .canvas.risk-mode .node[data-risk="2"] { box-shadow: 0 0 0 2px #e0964a, 0 0 13px 1px color-mix(in srgb, #e0964a 45%, transparent); }
+  .canvas.risk-mode .node[data-risk="3"] { box-shadow: 0 0 0 2px #e0564e, 0 0 18px 3px color-mix(in srgb, #e0564e 55%, transparent); }
+  .chk { font-family: var(--font-b); font-size: 12.5px; font-weight: 600; padding: 6px 13px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: var(--surface); color: var(--muted); cursor: pointer; transition: .15s; }
+  .chk:hover { color: var(--ink); border-color: var(--faint); }
+  .chk[aria-pressed="true"] { background: #e0564e; color: #fff; border-color: #e0564e; }
+  .chk.shock[aria-pressed="true"] { background: #d0332b; border-color: #d0332b; }
+  .seg.shockdir[hidden] { display: none; }
+  .canvas.shock-arm .node { cursor: crosshair; }
+  .canvas.shock-mode .node { opacity: .26; transition: opacity .2s, box-shadow .2s, border-color .2s; }
+  .canvas.shock-mode .node.hit, .canvas.shock-mode .node.epi { opacity: 1; }
+  svg.wires path.wire.shockwave { stroke: #d0332b; opacity: .95; stroke-dasharray: 7 6; }
+  @media (prefers-reduced-motion: no-preference) { svg.wires path.wire.shockwave { animation: flow .8s linear infinite; } }
+  .shlist { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .chk.corr[aria-pressed="true"] { background: #2f8f83; border-color: #2f8f83; }
+  .chk.compete[aria-pressed="true"] { background: #c2410c; border-color: #c2410c; }
+  .chk.geo[aria-pressed="true"] { background: #5b6b7d; border-color: #5b6b7d; }
+  .chk.earn[aria-pressed="true"] { background: #c77d18; border-color: #c77d18; }
+  .earn-badge { position: absolute; top: -9px; left: -6px; font-size: 12px; display: none; }
+  .canvas.earn-mode .node { opacity: .48; transition: opacity .2s, box-shadow .2s; }
+  .canvas.earn-mode .node[data-eimp="2"], .canvas.earn-mode .node[data-eimp="3"] { opacity: 1; }
+  .canvas.earn-mode .node[data-eimp="2"] { box-shadow: 0 0 0 2px #e0a52e, 0 0 11px -2px #e0a52e; }
+  .canvas.earn-mode .node[data-eimp="3"] { box-shadow: 0 0 0 2px #e0781e, 0 0 16px -1px #e0781e; }
+  .canvas.earn-mode .node[data-eimp="3"] .earn-badge { display: block; }
+  .earnnote { margin-top: 14px; padding: 11px 14px; border-radius: 10px; font-size: 13px;
+    background: color-mix(in srgb, #e0781e 10%, var(--surface)); border-left: 3px solid #e0781e; }
+  .earnnote b { font-family: var(--font-m); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    color: #c77d18; display: inline; margin-right: 4px; }
+  .earnnote .ehint { color: var(--faint); font-family: var(--font-m); font-size: 10px; }
+  .canvas.compete-mode svg.wires path.wire { opacity: .05; }
+  .canvas.compete-mode .node { opacity: .24; transition: opacity .2s, box-shadow .2s, border-color .2s; }
+  .canvas.compete-mode .node.compete-src { opacity: 1; box-shadow: 0 0 0 2.5px var(--flow); }
+  .canvas.compete-mode .node.compete-rival { opacity: 1; box-shadow: 0 0 0 2px #d84632, 0 0 13px -2px #d84632; border-color: #d84632; }
+  svg.wires path.competeline { fill: none; stroke: #d84632; stroke-width: 2; stroke-dasharray: 5 4; opacity: .92; }
+  @media (prefers-reduced-motion: no-preference) { svg.wires path.competeline { animation: flow .9s linear infinite; } }
+  .canvas.geo-mode .node[data-rg] { box-shadow: 0 0 0 2px var(--rgc), 0 0 11px -3px var(--rgc); border-color: var(--rgc); }
+  .search { font-family: var(--font-b); font-size: 12.5px; padding: 6px 12px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink); width: 150px; outline: none; }
+  .search:focus { border-color: var(--flow); }
+  .search::placeholder { color: var(--faint); }
+  .node.search-hide { opacity: .1 !important; filter: grayscale(1); }
+  #regionLegend[hidden] { display: none; }
+  .canvas.corr-mode svg.wires { opacity: .05; pointer-events: none; }
+  .canvas.corr-mode .node { cursor: pointer; transition: opacity .25s, box-shadow .25s, border-color .25s; }
+  .shrow { display: grid; grid-template-columns: 140px 1fr 42px 52px; align-items: center; gap: 10px; font-size: 12.5px; }
+  .shrow.corr3 { grid-template-columns: 150px 1fr 46px; }
+  .shname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .shbar { height: 7px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+  .shbar i { display: block; height: 100%; border-radius: 4px; }
+  .shpct { font-family: var(--font-m); font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
+  .shhop { font-family: var(--font-m); font-size: 9.5px; color: var(--faint); text-align: right; }
+  .risknote { margin-top: 14px; padding: 11px 14px; border-radius: 10px; font-size: 13px;
+    background: color-mix(in srgb, #e0564e 10%, var(--surface)); border-left: 3px solid #e0564e; }
+  .risknote b { font-family: var(--font-m); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+    color: #e0564e; display: block; margin-bottom: 3px; }
+  .canvas.filtered .node { opacity: .22; }
+  .canvas.filtered .node.on { opacity: 1; }
+  .canvas.filtered .node.sel { opacity: 1; box-shadow: 0 0 0 2px var(--flow), var(--shadow); }
+
+  svg.wires { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+  svg.wires path.wire { fill: none; stroke: var(--line-strong); stroke-width: var(--w, 1.3); opacity: .5; transition: opacity .2s, stroke .2s; }
+  svg.wires path.src-official { stroke-dasharray: 6 4; }
+  svg.wires path.src-reported { stroke-dasharray: 2 4; opacity: .32; }
+  .canvas.hide-reported svg.wires path.src-reported { display: none; }
+  .canvas.filtered svg.wires path.wire { opacity: .06; }
+  .canvas.filtered svg.wires path.wire.on { opacity: .95; stroke: var(--flow); stroke-width: calc(var(--w, 1.3) + 1); stroke-dasharray: none; }
+  svg.wires text.plabel { font-family: var(--font-m); font-weight: 700; font-size: 10px; fill: var(--ink);
+    paint-order: stroke; stroke: var(--surface); stroke-width: 3px; transition: opacity .2s; }
+  @media (prefers-reduced-motion: no-preference) {
+    .canvas.filtered svg.wires path.wire.on { stroke-dasharray: 7 6; animation: flow 1s linear infinite; }
+  }
+  @keyframes flow { to { stroke-dashoffset: -26; } }
+
+  .panel { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 22px 24px; min-height: 120px; }
+  .panel .p-tk { font-family: var(--font-m); font-size: 12px; color: var(--flow); letter-spacing: .04em; }
+  .panel h2 { font-family: var(--font-d); font-weight: 800; letter-spacing: -.02em; font-size: 22px; margin: 3px 0 4px;
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .panel h2 .mkt { font-family: var(--font-m); font-size: 12px; font-weight: 600; color: var(--t2);
+    background: color-mix(in srgb, var(--t2) 13%, transparent); border-radius: 6px; padding: 2px 8px; }
+  .panel .role { color: var(--muted); font-size: 14.5px; margin-bottom: 12px; max-width: 74ch; }
+  .stat { display: inline-flex; align-items: center; gap: 9px; padding: 8px 13px; border-radius: 9px;
+    background: color-mix(in srgb, var(--filed) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--filed) 40%, transparent);
+    font-size: 13px; margin-bottom: 18px; }
+  .stat .lbl { font-family: var(--font-m); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--filed); font-weight: 700; white-space: nowrap; }
+  .stat .lbl a { color: inherit; text-decoration: none; }
+  .stat .lbl a:hover { text-decoration: underline; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  @media (max-width: 640px) { .cols { grid-template-columns: 1fr; } .tiers { gap: 0 34px; } }
+  .cols h3 { font-family: var(--font-m); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--faint); margin: 0 0 9px; display: flex; align-items: center; gap: 7px; }
+  .cols h3 .ar { color: var(--flow); font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip { font-size: 12.5px; padding: 4px 9px; border-radius: 7px; background: var(--surface-2);
+    border: 1px solid var(--line-strong); display: inline-flex; align-items: center; gap: 6px; }
+  .chip b { font-weight: 600; }
+  .chip small { color: var(--muted); font-size: 11px; }
+  .tag { font-family: var(--font-m); font-size: 9px; letter-spacing: .03em; padding: 1px 5px; border-radius: 4px;
+    font-style: normal; font-weight: 600; text-transform: uppercase; }
+  .tag.filed { color: var(--filed); background: color-mix(in srgb, var(--filed) 15%, transparent); }
+  .tag.official { color: var(--official); background: color-mix(in srgb, var(--official) 16%, transparent); }
+  a.tag { text-decoration: none; cursor: pointer; transition: filter .15s; }
+  a.tag:hover { filter: brightness(1.12); text-decoration: underline; }
+  .reported-line { margin-top: 12px; font-size: 12px; color: var(--faint); }
+  .reported-line b { font-family: var(--font-m); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .why { margin-top: 18px; padding: 13px 15px; border-radius: 10px; background: var(--surface-2);
+    border-left: 3px solid var(--flow); font-size: 13.5px; }
+  .why b { font-family: var(--font-m); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--flow); display: block; margin-bottom: 3px; }
+  .hint { color: var(--faint); font-size: 12.5px; }
+  footer { margin-top: 26px; color: var(--faint); font-size: 12px; line-height: 1.6; max-width: 96ch; }
+  footer b { color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div class="eyebrow">AI Compute Supply Chain · sourced from filings &amp; official releases</div>
+    <h1>Five companies, one spine — from silicon to the data center</h1>
+    <p class="lede"><strong>TSMC</strong> fabricates the silicon → <strong>AMD, Broadcom &amp; Micron</strong> turn it
+      into chips and memory → <strong>Meta</strong> buys them to build AI infrastructure. Every relationship here is
+      traced to an <strong>SEC filing</strong> (solid line) or an <strong>official company release</strong> (dashed).
+      Widely-reported-but-unconfirmed ties are hidden until you switch them on.</p>
+  </header>
+
+  <div class="controls">
+    <div class="tabs" id="tabs"></div>
+    <div class="seg" id="srcToggle">
+      <span class="lbl">Sources</span>
+      <button data-mode="confirmed" aria-pressed="true">Confirmed only</button>
+      <button data-mode="all" aria-pressed="false">+ Reported</button>
+    </div>
+    <button class="chk" id="chkToggle" aria-pressed="false">⚠ Chokepoints</button>
+    <button class="chk shock" id="shockToggle" aria-pressed="false">⚡ Shock test</button>
+    <span class="seg shockdir" id="shockDir" hidden>
+      <button data-dir="down" aria-pressed="true">Supply cut ▼</button>
+      <button data-dir="up" aria-pressed="false">Demand cut ▲</button>
+    </span>
+    <button class="chk corr" id="corrToggle" aria-pressed="false">📈 Co-movement</button>
+    <button class="chk compete" id="competeToggle" aria-pressed="false">⚔ Competitors</button>
+    <button class="chk earn" id="earnToggle" aria-pressed="false">🔔 Earnings impact</button>
+    <button class="chk geo" id="geoToggle" aria-pressed="false">🌏 Geography</button>
+    <input class="search" id="search" type="search" placeholder="Search company…" aria-label="Search company" />
+  </div>
+
+  <div class="legends">
+    <div class="grp" id="tierLegend"></div>
+    <span class="sep"></span>
+    <div class="grp">
+      <span><i class="ln"></i> SEC filing</span>
+      <span><i class="ln dash"></i> official release</span>
+      <span><i class="ln dot"></i> reported</span>
+      <span>⇄ two-way</span>
+      <span>thicker = more material · % = filing-disclosed share</span>
+    </div>
+    <span class="sep"></span>
+    <div class="grp" id="regionLegend" hidden></div>
+  </div>
+
+  <div class="scroller">
+    <div class="canvas hide-reported" id="canvas">
+      <svg class="wires" id="wires">
+        <defs>
+          <marker id="ah" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto-start-reverse" markerUnits="strokeWidth">
+            <path d="M0,0 L6,3 L0,6 Z" fill="context-stroke"></path>
+          </marker>
+        </defs>
+      </svg>
+      <div class="tiers" id="tiers"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="panel"></div>
+
+  <footer>
+    ★ = focus company. <b>Sourcing:</b> a <span class="tag filed" style="font-size:9px">FILING</span> tag links to the
+    SEC 10-K / 20-F; an <span class="tag official" style="font-size:9px">OFFICIAL</span> tag links to a company press
+    release, supplier list, or engineering blog. Note that TSMC, Broadcom and Micron do <em>not</em> name customers in
+    their filings, so named ties are sourced from the counterparty's own disclosures (e.g. Apple's Supplier List, or
+    AMD's product releases). <b>Market-share figures</b> are third-party research (Counterpoint / TrendForce for foundry
+    &amp; DRAM, Mercury Research for server CPU, TD Cowen for Broadcom AI, eMarketer for ads, analyst estimates for GPU)
+    — no filing states them. Switch to <b>“+ Reported”</b> to reveal well-known but company-unconfirmed relationships.
+    <br><b>Line weight</b> reflects strategic materiality; a <b>%</b> on an edge is the share disclosed in a filing
+    (TSMC's 22% / 12% are the unnamed "largest / second" customers from the 20-F). <b>†</b> AMD's 18% is one unnamed
+    Gaming-segment customer (FY2023 10-K), shown on the console edge for context. <b>⚠ Chokepoints</b> highlights the
+    single points of failure where few or no alternative suppliers exist.
+  </footer>
+</div>
+
+<script>
+const TIERS = [
+  {key:'t0', label:'Equipment · Materials · IP'},
+  {key:'t1', label:'Foundry · Packaging'},
+  {key:'t2', label:'Chips · Memory'},
+  {key:'t3', label:'Systems · Networking · Cloud'},
+  {key:'t4', label:'Hyperscalers · Demand'},
+];
+const NODES = [
+  {id:'asml',  t:0, rg:'EU', nm:'ASML',              tk:'ASML', sub:'EUV/DUV litho'},
+  {id:'amat',  t:0, rg:'US', nm:'Applied Materials', tk:'AMAT', sub:'deposition / etch'},
+  {id:'lam',   t:0, rg:'US', nm:'Lam Research',      tk:'LRCX', sub:'etch / deposition'},
+  {id:'kla',   t:0, rg:'US', nm:'KLA',               tk:'KLAC', sub:'process control'},
+  {id:'tel',   t:0, rg:'JP', nm:'Tokyo Electron',    tk:'8035', sub:'wafer processing'},
+  {id:'advantest',t:0,rg:'JP',nm:'Advantest',        tk:'6857', sub:'HBM / AI test'},
+  {id:'besi',  t:0, rg:'EU', nm:'BESI',              tk:'BESI', sub:'hybrid bonding'},
+  {id:'entegris',t:0,rg:'US',nm:'Entegris',          tk:'ENTG', sub:'materials / filtration'},
+  {id:'wafers',t:0, rg:'JP', nm:'Shin-Etsu / SUMCO', tk:'',     sub:'silicon wafers'},
+  {id:'eda',   t:0, rg:'US', nm:'Synopsys / Cadence',tk:'SNPS', sub:'EDA design tools'},
+  {id:'arm',   t:0, rg:'EU', nm:'Arm',               tk:'ARM',  sub:'CPU / GPU IP'},
+  {id:'unimicron',t:0,rg:'TW',nm:'Unimicron',        tk:'3037', sub:'ABF substrate'},
+  {id:'globalwafers',t:0,rg:'TW',nm:'GlobalWafers',  tk:'6488', sub:'silicon wafers'},
+
+  {id:'tsmc',  t:1, rg:'TW', nm:'TSMC',            tk:'TSM',  sub:'leading-edge foundry', focus:true, share:'≈64% foundry'},
+  {id:'samfdry',t:1,rg:'KR', nm:'Samsung Foundry', tk:'',     sub:'foundry #2'},
+  {id:'umc',   t:1, rg:'TW', nm:'UMC',             tk:'UMC',  sub:'mature-node foundry'},
+  {id:'gf',    t:1, rg:'US', nm:'GlobalFoundries', tk:'GFS',  sub:'mature-node foundry'},
+  {id:'smic',  t:1, rg:'CN', nm:'SMIC',            tk:'0981', sub:'China foundry'},
+  {id:'osat',  t:1, rg:'TW', nm:'ASE / Amkor',     tk:'',     sub:'assembly & test'},
+
+  {id:'amd',   t:2, rg:'US', nm:'AMD',      tk:'AMD',  sub:'CPUs · MI-series GPUs', focus:true, share:'≈34% server CPU'},
+  {id:'avgo',  t:2, rg:'US', nm:'Broadcom', tk:'AVGO', sub:'custom ASICs · networking', focus:true, share:'≈70% AI networking'},
+  {id:'micron',t:2, rg:'US', nm:'Micron',   tk:'MU',   sub:'DRAM · NAND · HBM', focus:true, share:'#3 DRAM ≈25%'},
+  {id:'nvda',  t:2, rg:'US', nm:'Nvidia',   tk:'NVDA', sub:'GPUs (peer / buyer)', share:'≈92% DC GPU'},
+  {id:'intel', t:2, rg:'US', nm:'Intel',    tk:'INTC', sub:'CPUs · Gaudi · foundry', share:'≈65% server CPU'},
+  {id:'skhynix',t:2,rg:'KR', nm:'SK Hynix', tk:'000660',sub:'HBM · DRAM', share:'#2 DRAM · HBM lead'},
+  {id:'samsung',t:2,rg:'KR', nm:'Samsung',  tk:'005930',sub:'memory · logic', share:'#1 DRAM / NAND'},
+  {id:'kioxia',t:2, rg:'JP', nm:'Kioxia',   tk:'285A', sub:'NAND flash'},
+  {id:'marvell',t:2,rg:'US', nm:'Marvell',  tk:'MRVL', sub:'custom ASIC · optics'},
+  {id:'astera',t:2, rg:'US', nm:'Astera Labs',tk:'ALAB',sub:'AI connectivity'},
+  {id:'qcom',  t:2, rg:'US', nm:'Qualcomm', tk:'QCOM', sub:'mobile SoC', share:'mobile SoC leader'},
+  {id:'mtk',   t:2, rg:'TW', nm:'MediaTek', tk:'2454', sub:'SoC'},
+  {id:'ti',    t:2, rg:'US', nm:'Texas Instruments',tk:'TXN',sub:'analog', share:'#1 analog'},
+  {id:'infineon',t:2,rg:'EU',nm:'Infineon', tk:'IFX',  sub:'power · auto'},
+  {id:'nxp',   t:2, rg:'EU', nm:'NXP',       tk:'NXPI', sub:'auto · edge'},
+  {id:'alchip',t:2, rg:'TW', nm:'Alchip',    tk:'3661', sub:'ASIC design service'},
+  {id:'guc',   t:2, rg:'TW', nm:'Global Unichip',tk:'3443',sub:'ASIC (TSMC-affil.)'},
+  {id:'nanya', t:2, rg:'TW', nm:'Nanya',     tk:'2408', sub:'DRAM'},
+
+  {id:'dell',  t:3, rg:'US', nm:'Dell',        tk:'DELL', sub:'AI servers'},
+  {id:'hpe',   t:3, rg:'US', nm:'HPE',         tk:'HPE',  sub:'servers'},
+  {id:'smci',  t:3, rg:'US', nm:'Supermicro',  tk:'SMCI', sub:'AI servers'},
+  {id:'lenovo',t:3, rg:'CN', nm:'Lenovo',      tk:'992',  sub:'servers'},
+  {id:'wiwynn',t:3, rg:'TW', nm:'Wiwynn',      tk:'6669', sub:'hyperscale ODM'},
+  {id:'foxconn',t:3,rg:'TW', nm:'Foxconn / Quanta', tk:'', sub:'server ODM'},
+  {id:'celestica',t:3,rg:'US',nm:'Celestica', tk:'CLS',  sub:'ODM / racks'},
+  {id:'arista',t:3, rg:'US', nm:'Arista',      tk:'ANET', sub:'switching'},
+  {id:'cisco', t:3, rg:'US', nm:'Cisco',       tk:'CSCO', sub:'networking'},
+  {id:'vertiv',t:3, rg:'US', nm:'Vertiv',      tk:'VRT',  sub:'power · cooling'},
+  {id:'coreweave',t:3,rg:'US',nm:'CoreWeave', tk:'CRWV', sub:'neocloud'},
+  {id:'nebius',t:3, rg:'EU', nm:'Nebius',      tk:'NBIS', sub:'neocloud'},
+  {id:'delta', t:3, rg:'TW', nm:'Delta Electronics',tk:'2308',sub:'power · thermal'},
+  {id:'accton',t:3, rg:'TW', nm:'Accton',      tk:'2345', sub:'switch ODM'},
+  {id:'gigabyte',t:3,rg:'TW',nm:'Gigabyte',    tk:'2376', sub:'AI servers'},
+
+  {id:'meta',  t:4, rg:'US', nm:'Meta',      tk:'META', sub:'AI capex → ads', focus:true, share:'#2 digital ads'},
+  {id:'msft',  t:4, rg:'US', nm:'Microsoft', tk:'MSFT', sub:'Azure'},
+  {id:'googl', t:4, rg:'US', nm:'Google',    tk:'GOOGL',sub:'Cloud · TPU'},
+  {id:'amzn',  t:4, rg:'US', nm:'Amazon',    tk:'AMZN', sub:'AWS · Trainium'},
+  {id:'apple', t:4, rg:'US', nm:'Apple',     tk:'AAPL', sub:'devices'},
+  {id:'oracle',t:4, rg:'US', nm:'Oracle',    tk:'ORCL', sub:'OCI cloud'},
+  {id:'openai',t:4, rg:'US', nm:'OpenAI',    tk:'',     sub:'AI lab'},
+  {id:'anthropic',t:4,rg:'US',nm:'Anthropic',tk:'',     sub:'AI lab'},
+  {id:'xai',   t:4, rg:'US', nm:'xAI',       tk:'',     sub:'AI lab'},
+  {id:'tesla', t:4, rg:'US', nm:'Tesla',     tk:'TSLA', sub:'auto / AI'},
+  {id:'bytedance',t:4,rg:'CN',nm:'ByteDance',tk:'',    sub:'TikTok'},
+  {id:'tencent',t:4,rg:'CN', nm:'Tencent',   tk:'0700', sub:'cloud · apps'},
+  {id:'alibaba',t:4,rg:'CN', nm:'Alibaba',   tk:'BABA', sub:'cloud · T-Head'},
+  {id:'sony',  t:4, rg:'JP', nm:'Sony',      tk:'SONY', sub:'PlayStation'},
+];
+// edges: [supplier, customer, src, bidi?]  src: 'filing' | 'official' | 'reported'
+const EDGES = [
+  // equipment / IP -> foundry / memory  (never company-named -> reported)
+  ['asml','tsmc','reported'],['amat','tsmc','reported'],['lam','tsmc','reported'],['kla','tsmc','reported'],['tel','tsmc','reported'],['wafers','tsmc','reported'],
+  ['asml','samfdry','reported'],['amat','samfdry','reported'],
+  ['asml','micron','reported'],['amat','micron','reported'],['lam','micron','reported'],['tel','micron','reported'],['wafers','micron','reported'],
+  ['amat','skhynix','reported'],['lam','skhynix','reported'],['amat','samsung','reported'],['lam','samsung','reported'],
+  ['eda','amd','reported'],['eda','avgo','reported'],['eda','nvda','reported'],['eda','marvell','reported'],['eda','qcom','reported'],
+  ['arm','qcom','reported'],['arm','mtk','reported'],['arm','apple','reported'],['arm','avgo','reported'],
+  // foundry / OSAT -> chips  (customer's own 10-K names the foundry)
+  ['tsmc','amd','filing'],['tsmc','avgo','filing'],['tsmc','nvda','filing'],['tsmc','qcom','filing'],
+  ['tsmc','apple','official'],['tsmc','marvell','reported'],['tsmc','mtk','reported'],
+  ['samfdry','qcom','reported'],['samfdry','tesla','reported'],['gf','amd','filing'],['gf','qcom','reported'],
+  ['osat','amd','reported'],['osat','avgo','reported'],['osat','nvda','reported'],['osat','marvell','reported'],['osat','apple','official'],
+  // memory -> chips & buyers
+  ['micron','nvda','official'],['micron','apple','official'],['micron','amd','reported'],['micron','dell','reported'],['micron','hpe','reported'],['micron','meta','reported'],['micron','tesla','reported'],
+  ['skhynix','nvda','reported'],['skhynix','amd','reported'],['samsung','nvda','reported'],['samsung','amd','reported'],
+  // chips -> systems / hyperscalers
+  ['amd','dell','official'],['amd','hpe','official'],['amd','smci','official'],['amd','lenovo','official'],['amd','msft','filing'],['amd','sony','filing'],['amd','meta','official'],['amd','oracle','official'],['amd','googl','reported'],['amd','amzn','reported'],['amd','coreweave','reported'],
+  ['avgo','openai','official'],['avgo','apple','official'],['avgo','googl','reported'],['avgo','meta','reported'],['avgo','bytedance','reported'],['avgo','amzn','reported'],['avgo','msft','reported'],['avgo','arista','reported'],
+  ['nvda','meta','official'],['nvda','coreweave','filing',true],['nvda','msft','reported'],['nvda','googl','reported'],['nvda','amzn','reported'],['nvda','oracle','reported'],['nvda','dell','reported'],['nvda','tesla','reported'],
+  ['marvell','amzn','reported'],['marvell','googl','reported'],['marvell','arista','reported'],['qcom','apple','official'],
+  // systems / cloud -> hyperscalers
+  ['coreweave','meta','official'],['coreweave','msft','filing'],['coreweave','openai','official'],
+  ['dell','meta','reported'],['dell','msft','reported'],['dell','coreweave','reported'],['smci','meta','reported'],['smci','coreweave','reported'],['hpe','msft','reported'],
+  ['arista','meta','reported'],['arista','msft','reported'],['celestica','meta','reported'],['celestica','googl','reported'],['foxconn','meta','reported'],['foxconn','amzn','reported'],
+  // ---- expansion: additional major companies (relationships pending filing verification -> reported) ----
+  // equipment / materials -> foundry & memory
+  ['advantest','tsmc','reported'],['advantest','micron','reported'],['advantest','skhynix','reported'],
+  ['besi','tsmc','reported'],['besi','amd','reported'],['entegris','tsmc','reported'],['entegris','micron','reported'],
+  ['kla','tsmc','reported'],['amat','smic','reported'],['lam','smic','reported'],['amat','intel','reported'],['lam','intel','reported'],
+  ['eda','intel','reported'],['eda','astera','reported'],['arm','nvda','reported'],
+  // foundry / packaging -> chips
+  ['tsmc','intel','reported'],['tsmc','astera','reported'],['umc','qcom','reported'],['umc','mtk','reported'],['umc','nxp','reported'],
+  ['smic','tencent','reported'],['smic','alibaba','reported'],['osat','intel','reported'],
+  // memory -> chips & buyers
+  ['skhynix','apple','official'],['samsung','apple','official'],['kioxia','apple','reported'],['kioxia','dell','reported'],
+  ['micron','msft','reported'],['skhynix','meta','reported'],
+  // chips -> systems / hyperscalers
+  ['intel','dell','reported'],['intel','hpe','reported'],['intel','lenovo','reported'],['intel','msft','reported'],['intel','amzn','reported'],['intel','meta','reported'],
+  ['astera','amzn','reported'],['astera','msft','reported'],['astera','smci','reported'],['astera','dell','reported'],
+  ['ti','tesla','reported'],['ti','apple','reported'],['infineon','tesla','reported'],['infineon','apple','reported'],['nxp','apple','reported'],['nxp','tesla','reported'],
+  ['nvda','xai','reported'],['nvda','anthropic','reported'],['nvda','tencent','reported'],['nvda','alibaba','reported'],['nvda','nebius','reported'],['nvda','oracle','reported'],
+  ['avgo','anthropic','reported'],['marvell','msft','reported'],
+  // systems / networking / cloud -> hyperscalers
+  ['vertiv','meta','reported'],['vertiv','msft','reported'],['vertiv','googl','reported'],['vertiv','coreweave','reported'],
+  ['cisco','msft','reported'],['cisco','oracle','reported'],['wiwynn','meta','reported'],['wiwynn','msft','reported'],
+  ['nebius','msft','reported'],['nebius','meta','reported'],
+  // cloud / chips -> AI labs (demand)
+  ['amzn','anthropic','reported'],['googl','anthropic','reported'],['oracle','openai','reported'],['coreweave','xai','reported'],
+  // ---- Taiwan supply-chain additions ----
+  ['unimicron','nvda','reported'],['unimicron','amd','reported'],['unimicron','osat','reported'],
+  ['globalwafers','tsmc','reported'],['globalwafers','micron','reported'],
+  ['alchip','amzn','reported'],['alchip','bytedance','reported'],['guc','tesla','reported'],['guc','intel','reported'],
+  ['nanya','dell','reported'],['nanya','lenovo','reported'],
+  ['delta','nvda','reported'],['delta','meta','reported'],['delta','msft','reported'],['delta','coreweave','reported'],
+  ['accton','meta','reported'],['accton','googl','reported'],['gigabyte','coreweave','reported'],['gigabyte','meta','reported'],
+];
+
+// source URLs
+const F = {
+  amd:'https://www.sec.gov/Archives/edgar/data/2488/000000248825000012/amd-20241228.htm',
+  avgo:'https://www.sec.gov/Archives/edgar/data/1730168/000173016825000121/avgo-20251102.htm',
+  tsmc:'https://investor.tsmc.com/sites/ir/sec-filings/2025_20F%20Report.pdf',
+  micron:'https://www.sec.gov/Archives/edgar/data/723125/000072312525000028/mu-20250828.htm',
+  meta:'https://d18rn0p25nwr6d.cloudfront.net/CIK-0001326801/e574646c-c642-42d9-9229-3892b13aabfb.pdf',
+  nvda:'https://www.sec.gov/Archives/edgar/data/1045810/000104581025000023/nvda-20250126.htm',
+};
+const O = {
+  apple:'https://s203.q4cdn.com/367071867/files/doc_downloads/2024/04/Apple-Supplier-List.pdf',
+  amdMi300:'https://ir.amd.com/news-events/press-releases/detail/1173/amd-delivers-leadership-portfolio-of-data-center-ai-solutions-with-amd-instinct-mi300-series',
+  avgoOpenai:'https://investors.broadcom.com/news-releases/news-release-details/openai-and-broadcom-announce-strategic-collaboration-deploy-10',
+  muNvda:'https://investors.micron.com/news-releases/news-release-details/micron-high-volume-production-hbm4-designed-nvidia-vera-rubin',
+  metaCrwv:'https://investors.coreweave.com/news/news-details/2026/CoreWeave-and-Meta-Announce-21-Billion-Expanded-AI-Infrastructure-Agreement/default.aspx',
+  metaGenai:'https://engineering.fb.com/2024/03/12/data-center-engineering/building-metas-genai-infrastructure/',
+};
+const DETAIL = {
+  tsmc: {
+    mkt:'≈64% of global foundry (2024)',
+    role:'The foundry at the center of gravity. Nearly every advanced AI chip in the world is manufactured here — which makes it the single most systemically important company in the chain.',
+    stat:['FY2024 20-F','Largest customer 22% · #2 customer 12% · top-10 ≈76% — customers are unnamed ("Client A/B")', F.tsmc],
+    buy:[['ASML · Applied Materials · Lam','equipment','reported'],['Shin-Etsu / SUMCO','wafers','reported']],
+    sell:[['Apple','Apple Supplier List','official',O.apple],['Nvidia','names TSMC in its 10-K','filing',F.nvda],['AMD','names TSMC in its 10-K','filing',F.amd],['Broadcom','third-party foundry (10-K)','filing',F.avgo],['Qualcomm','','filing',F.tsmc]],
+    reported:'ASE / Amkor packaging; Marvell, MediaTek as foundry customers.',
+    why:'CoWoS advanced-packaging capacity is the current bottleneck for AI GPUs. When TSMC guides packaging, the whole GPU supply plan moves.' },
+  avgo: {
+    mkt:'≈70% of its serviceable AI-networking market',
+    role:'Custom AI silicon plus the networking that ties data centers together — the hyperscalers’ chip co-design partner, and the leading "custom ASIC vs. buy-Nvidia" alternative.',
+    stat:['FY2025 10-K','Top-5 end customers ≈40% of net revenue · one distributor 28% — none named','', F.avgo],
+    buy:[['TSMC','wafer fab (10-K)','filing',F.avgo],['ASE / Amkor','packaging','reported']],
+    sell:[['OpenAI','10 GW deal, Oct 2025','official',O.avgoOpenai],['Apple','Apple Supplier List','official',O.apple]],
+    reported:'Google (TPU), Meta (MTIA), ByteDance, Amazon, Microsoft — widely reported as custom-XPU customers, but Broadcom does not name them.',
+    why:'Two engines: custom AI accelerators for hyperscalers and VMware software revenue that smooths the semiconductor cycle. The pure-play on the "hyperscalers build their own chips" trend.' },
+  amd: {
+    mkt:'≈34% server-CPU revenue share; ≈8% data-center GPU',
+    role:'The clear #2 in data-center AI GPUs and the share-gaining challenger in server CPUs — the credible second source hyperscalers want so they aren’t single-vendor on Nvidia.',
+    stat:['FY2023 10-K','One customer = 18% of revenue (Gaming / semi-custom); Data Center is now the largest segment', F.amd],
+    buy:[['TSMC','fab + CoWoS (10-K)','filing',F.amd],['GlobalFoundries','WSA (10-K)','filing',F.amd]],
+    sell:[['Microsoft','Azure + Xbox','filing',F.amd],['Sony','PlayStation 5','filing',F.amd],['Meta','MI300 launch partner','official',O.amdMi300],['Oracle','OCI','official',O.amdMi300],['Dell · HPE · Supermicro · Lenovo','MI300 partners','official',O.amdMi300]],
+    reported:'HBM from Micron / SK Hynix / Samsung; Google & Amazon as cloud customers.',
+    why:'HBM supply and TSMC CoWoS allocation gate how many MI-series units it can actually ship — the constraint is capacity, not demand.' },
+  micron: {
+    mkt:'#3 in DRAM (≈25%); a top-tier HBM maker',
+    role:'Memory — and in the AI era, memory is the bottleneck. One of only three makers of high-bandwidth memory (HBM), the stacked DRAM that sits next to every AI GPU.',
+    stat:['FY2025 10-K','~½ of revenue from top-10 customers (each of last 3 yrs) · no single 10%+ customer named', F.micron],
+    buy:[['— runs its own fabs','no external foundry (10-K)','filing',F.micron]],
+    sell:[['Nvidia','HBM for Vera Rubin — Micron release','official',O.muNvda],['Apple','Apple Supplier List','official',O.apple]],
+    reported:'AMD (HBM); hyperscalers, Dell / HPE, automotive as memory buyers.',
+    why:'HBM is effectively sold out and priced on allocation. The story is pricing power — only Micron, SK Hynix and Samsung can make it.' },
+  meta: {
+    mkt:'#2 in global digital advertising (≈20%+)',
+    role:'The end-demand buyer that funds the entire chain above it. Not a chip maker — a hyperscaler whose AI capex converts, ultimately, into advertising revenue.',
+    stat:['FY2025 10-K','No single customer is material — advertising ≈98% of revenue, broadly diversified', F.meta],
+    buy:[['Nvidia','350k H100s — Meta eng. blog','official',O.metaGenai],['CoreWeave','$35.2B cloud → 2032','official',O.metaCrwv]],
+    sell:[['Advertisers','SMBs · agencies · resellers','filing',F.meta]],
+    reported:'AMD & Broadcom (MTIA) silicon; Micron memory; Dell / Supermicro / Arista systems.',
+    why:'Its capex guidance is the demand signal for everyone upstream — a single Meta spending revision ripples through Broadcom, AMD, Micron and TSMC. On the sell side there is no concentration risk.' },
+};
+
+// edge materiality: w = line weight 1..3; pct = filing-disclosed share (only where a filing states it)
+const EDGEMETA = {
+  'tsmc>apple':{w:3,pct:'22%'}, 'tsmc>nvda':{w:3,pct:'12%'},
+  'amd>sony':{w:3,pct:'18%†'}, 'amd>msft':{w:2},
+  'micron>nvda':{w:3}, 'nvda>meta':{w:3}, 'nvda>coreweave':{w:3},
+  'avgo>openai':{w:2}, 'avgo>apple':{w:2},
+  'tsmc>amd':{w:2}, 'tsmc>avgo':{w:2}, 'tsmc>qcom':{w:2},
+  'amd>meta':{w:2}, 'amd>oracle':{w:2}, 'amd>dell':{w:2},
+  'coreweave>meta':{w:2}, 'coreweave>msft':{w:2}, 'micron>apple':{w:2},
+};
+const WMAP = {1:1.1, 2:1.9, 3:2.9};
+// chokepoint risk: [level 1..3, reason]
+const RISK = {
+  asml:[3,'The only source of EUV lithography on earth — no substitute exists.'],
+  tsmc:[3,'Makes ~90% of leading-edge logic; its CoWoS packaging is the AI-GPU bottleneck.'],
+  eda:[2,'Virtually all chip design runs through the Synopsys / Cadence duopoly.'],
+  arm:[2,'Dominant CPU instruction-set IP, licensed across the industry.'],
+  wafers:[2,'300mm silicon wafers are concentrated in a few Japanese suppliers.'],
+  micron:[2,'HBM is a three-maker oligopoly (Micron · SK Hynix · Samsung) and effectively sold out.'],
+  skhynix:[2,'HBM oligopoly member and current HBM share leader.'],
+  samsung:[2,'HBM oligopoly member and the largest memory maker.'],
+  osat:[1,'Advanced-packaging (CoWoS / OSAT) capacity is tight industry-wide.'],
+};
+// geography: [label, color]
+const REGION = {
+  US:['United States','#3f7fd6'], TW:['Taiwan','#2f9e6f'], KR:['South Korea','#9a6fd0'],
+  JP:['Japan','#d8574e'], CN:['China','#e0a020'], EU:['Europe','#2f9e9e'],
+};
+// competitor groups: everyone in a group competes with the others for the same customers
+const RIVAL_GROUPS = [
+  ['nvda','amd','intel','avgo','marvell'],      // AI compute silicon
+  ['amd','intel'],                              // server / PC CPUs
+  ['micron','skhynix','samsung','kioxia'],      // memory / HBM
+  ['tsmc','samfdry','intel','umc','gf','smic'], // foundry
+  ['avgo','marvell'],                           // custom ASIC / networking silicon
+  ['qcom','mtk'],                               // mobile SoC
+  ['ti','infineon','nxp'],                      // analog / auto
+  ['amat','lam','kla','tel'],                   // wafer-fab equipment
+  ['dell','hpe','smci','lenovo'],               // servers
+  ['foxconn','wiwynn','celestica'],             // ODM
+  ['arista','cisco'],                           // networking systems
+  ['coreweave','nebius'],                       // neoclouds
+  ['msft','googl','amzn','oracle'],             // cloud
+  ['meta','googl'],                             // digital ads
+  ['openai','anthropic','xai','googl'],         // frontier AI labs
+];
+const COMPETES = {};
+RIVAL_GROUPS.forEach(g=>g.forEach(a=>{ (COMPETES[a]=COMPETES[a]||new Set()); g.forEach(b=>{ if(b!==a) COMPETES[a].add(b); }); }));
+const COMPETE_NOTE = {
+  amd:'AMD fights Nvidia (and Intel) for the same AI-GPU and server-CPU budget. A <b>weak AMD report often lifts Nvidia</b> — it signals Nvidia is holding or gaining share, so the competitive threat recedes. They co-move on AI-demand headlines but <b>diverge on market-share news</b>.',
+  nvda:'Nvidia is the ≈90%-share incumbent in AI GPUs; AMD, Intel and the custom-ASIC makers (Broadcom, Marvell) are the challengers. A challenger stumbling can <b>lift Nvidia</b>; a challenger win can <b>pressure it</b> — even while all rise together on overall AI capex.',
+  avgo:'Broadcom’s custom accelerators compete with Nvidia’s merchant GPUs for hyperscaler AI dollars, and with Marvell in custom ASIC / networking. It tends to gain when hyperscalers try to <b>reduce dependence on Nvidia</b>.',
+  micron:'Micron, SK Hynix and Samsung form a three-way memory / HBM oligopoly. The stocks trade on <b>industry pricing</b> (often together), but HBM share shifts — who qualifies for the next GPU — can split them.',
+  tsmc:'TSMC has no true peer at the leading edge; Samsung and Intel Foundry are would-be challengers, with UMC / GlobalFoundries / SMIC at mature nodes. Its rivalry is about whether a challenger <b>catches up on process</b>, not lost customers.',
+  intel:'Intel competes with AMD (CPUs), Nvidia & AMD (AI accelerators via Gaudi) and TSMC / Samsung (as a would-be foundry). It has been the <b>share donor</b> — most of AMD’s gains came out of Intel.',
+};
+// earnings-impact: [level 1..3, why the report moves sentiment]  3 = market-moving, 1 = low
+const EARN = {
+  nvda:[3,'The single most market-moving report in tech — Nvidia’s guide sets sentiment for the entire AI complex; a cautious guide can sell off the whole sector.'],
+  tsmc:[3,'Monthly sales and the quarterly guide are the cleanest read on real AI-chip demand — moves the whole supply chain.'],
+  asml:[3,'Order bookings are a leading indicator for the entire semi-equipment cycle 12–18 months out.'],
+  avgo:[3,'Bellwether for custom AI silicon and networking; its AI-revenue guide moves the ASIC trade.'],
+  amd:[3,'The read on whether anyone is denting Nvidia’s share — its data-center GPU number is the key #2-AI signal.'],
+  micron:[3,'The read on memory / HBM pricing — sets the tone for the whole memory cycle.'],
+  meta:[3,'A hyperscaler capex number — raises or cuts the demand signal for every chip and hardware supplier above it.'],
+  msft:[3,'Azure growth + capex guide drives the AI-infrastructure demand narrative.'],
+  googl:[3,'Cloud growth, capex and TPU commentary move the AI-infrastructure and ad complexes.'],
+  amzn:[3,'AWS growth + capex guide is a core AI-demand signal.'],
+  apple:[3,'Largest listed company — its results swing mega-cap indices and the consumer-tech tape.'],
+  intel:[2,'Read on the CPU share war with AMD and on foundry progress.'],
+  skhynix:[2,'HBM leader — its guide sets memory / HBM sentiment alongside Micron.'],
+  samsung:[2,'Largest memory maker; a read on memory pricing and foundry.'],
+  marvell:[2,'Custom-ASIC and optics read alongside Broadcom.'],
+  dell:[2,'AI-server backlog and shipments — a real-time read on data-center build-out.'],
+  smci:[2,'AI-server demand bellwether (and a volatility name).'],
+  arista:[2,'AI back-end networking demand read.'],
+  oracle:[2,'OCI / RPO backlog is watched as an AI-cloud demand gauge.'],
+  vertiv:[2,'Power & cooling orders — a leading read on data-center capacity coming online.'],
+  coreweave:[2,'Neocloud backlog — a direct read on AI-compute leasing demand.'],
+  qcom:[2,'Handset and edge-AI demand read.'], delta:[2,'Power & thermal orders track AI data-center build-out.'],
+  ti:[2,'Broad analog read on industrial / auto demand cycles.'], mtk:[2,'Smartphone and edge-SoC demand read.'],
+};
+
+// sector-factor exposures for a MODELED co-movement estimate (not realized/price-based)
+// factors: mc=mega-cap tech, ai=AI-compute, se=semis-cyclical, me=memory, wf=WFE equipment,
+//          fo=foundry, hw=hardware/server, co=consumer devices, cl=cloud infra
+const FACTORS = {
+  asml:{wf:1,se:.8,ai:.5}, amat:{wf:1,se:.85,ai:.45}, lam:{wf:1,se:.85,ai:.45,me:.4},
+  kla:{wf:1,se:.8,ai:.4}, tel:{wf:1,se:.8,ai:.4,me:.35}, wafers:{se:.7,wf:.5,ai:.35},
+  eda:{se:.75,ai:.55,mc:.2}, arm:{ai:.6,se:.6,mc:.3},
+  tsmc:{fo:1,ai:.85,se:.9,mc:.3}, samfdry:{fo:.8,me:.6,se:.7,ai:.4}, gf:{fo:.7,se:.6,ai:.2}, osat:{se:.7,ai:.5,hw:.4},
+  amd:{ai:.9,se:.85,mc:.35}, avgo:{ai:.9,se:.8,mc:.4}, micron:{me:1,se:.8,ai:.6},
+  nvda:{ai:1,se:.75,mc:.6}, skhynix:{me:1,se:.75,ai:.6}, samsung:{me:.9,fo:.6,se:.7,ai:.4},
+  marvell:{ai:.85,se:.8}, qcom:{se:.7,ai:.4,co:.4,mc:.2}, mtk:{se:.65,co:.45,ai:.3},
+  dell:{hw:1,ai:.6,se:.4}, hpe:{hw:1,ai:.55,se:.35}, smci:{hw:.9,ai:.85,se:.4}, lenovo:{hw:.9,co:.4,ai:.4},
+  arista:{hw:.8,ai:.75,cl:.4}, celestica:{hw:.9,ai:.6}, foxconn:{hw:.9,co:.5,ai:.45}, coreweave:{cl:1,ai:.95,mc:.3},
+  meta:{mc:1,ai:.7,cl:.5}, msft:{mc:1,cl:.8,ai:.7}, googl:{mc:1,cl:.7,ai:.7}, amzn:{mc:1,cl:.85,ai:.6},
+  apple:{mc:1,co:.9,se:.3}, oracle:{cl:.8,ai:.6,mc:.5}, sony:{co:.8,hw:.3}, tesla:{mc:.7,co:.5,ai:.4},
+  advantest:{wf:.9,se:.75,ai:.55}, besi:{wf:.9,se:.7,ai:.6}, entegris:{wf:.7,se:.75,ai:.4},
+  umc:{fo:.7,se:.6,ai:.2}, smic:{fo:.75,se:.65,ai:.3},
+  intel:{ai:.5,se:.8,mc:.45,fo:.4}, kioxia:{me:.9,se:.7,ai:.5}, astera:{ai:.95,se:.8,mc:.3},
+  ti:{se:.6,co:.3,mc:.3}, infineon:{se:.6,co:.35,ai:.25}, nxp:{se:.6,co:.35},
+  vertiv:{hw:.85,ai:.8,cl:.3,mc:.3}, cisco:{hw:.6,ai:.4,cl:.45,mc:.35}, wiwynn:{hw:.9,ai:.75}, nebius:{cl:1,ai:.9,mc:.2},
+  tencent:{mc:.8,cl:.6,ai:.5}, alibaba:{mc:.8,cl:.7,ai:.5},
+  unimicron:{se:.7,ai:.6,wf:.3}, globalwafers:{se:.7,wf:.5,ai:.35},
+  alchip:{ai:.9,se:.85}, guc:{ai:.85,se:.8,fo:.3}, nanya:{me:.9,se:.75},
+  delta:{hw:.7,ai:.75,co:.3}, accton:{hw:.8,ai:.7,cl:.35}, gigabyte:{hw:.9,ai:.85},
+  bytedance:null, openai:null, anthropic:null, xai:null, // privately held — no market data
+};
+function corr(a,b){
+  const fa=FACTORS[a], fb=FACTORS[b];
+  if(!fa||!fb) return null;
+  let dot=0, na=0, nb=0;
+  new Set([...Object.keys(fa),...Object.keys(fb)]).forEach(k=>{ dot += (fa[k]||0)*(fb[k]||0); });
+  Object.values(fa).forEach(v=>na+=v*v); Object.values(fb).forEach(v=>nb+=v*v);
+  const cos = dot/((Math.sqrt(na)*Math.sqrt(nb))||1);
+  return Math.min(0.95, 0.12 + 0.78*cos);
+}
+function corrColor(c){ const i=Math.max(0,Math.min(1,(c-0.2)/0.7)); return `hsl(${186-i*6}, ${Math.round(28+i*55)}%, ${Math.round(70-i*30)}%)`; }
+
+const byId = Object.fromEntries(NODES.map(n=>[n.id,n]));
+const tiersEl = document.getElementById('tiers');
+const wires = document.getElementById('wires');
+const canvas = document.getElementById('canvas');
+const nodeEls = {};
+
+TIERS.forEach((tier, ti) => {
+  const col = document.createElement('div'); col.className = 'col';
+  const h = document.createElement('div'); h.className = 'col-h'; h.textContent = tier.label; col.appendChild(h);
+  NODES.filter(n=>n.t===ti).forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'node' + (n.focus ? ' focus star' : '');
+    el.style.setProperty('--tier', `var(--${tier.key})`);
+    el.dataset.id = n.id;
+    if(n.rg){ el.dataset.rg = n.rg; el.style.setProperty('--rgc', (REGION[n.rg]||['','#888'])[1]); }
+    if(RISK[n.id]) el.dataset.risk = RISK[n.id][0];
+    if(EARN[n.id]) el.dataset.eimp = EARN[n.id][0];
+    el.innerHTML = `${RISK[n.id]?'<span class="risk-badge">⚠</span>':''}${EARN[n.id]&&EARN[n.id][0]===3?'<span class="earn-badge">🔔</span>':''}<div class="nm">${n.nm}${n.tk?`<span class="tk">${n.tk}</span>`:''}</div>
+                    <div class="sub">${n.sub}</div>${n.share?`<div class="share">${n.share}</div>`:''}`;
+    el.addEventListener('click', ()=> onNodeClick(n.id));
+    col.appendChild(el); nodeEls[n.id] = el;
+  });
+  tiersEl.appendChild(col);
+});
+
+const tierLegend = document.getElementById('tierLegend');
+TIERS.forEach(t => {
+  const s = document.createElement('span');
+  s.innerHTML = `<i style="background:var(--${t.key})"></i>${t.label}`;
+  tierLegend.appendChild(s);
+});
+
+// geography legend + toggle
+const regionLegend=document.getElementById('regionLegend');
+Object.entries(REGION).forEach(([k,[label,color]])=>{
+  const s=document.createElement('span'); s.innerHTML=`<i style="background:${color}"></i>${label}`; regionLegend.appendChild(s);
+});
+const geoToggle=document.getElementById('geoToggle');
+geoToggle.addEventListener('click',()=>{
+  const on = geoToggle.getAttribute('aria-pressed')!=='true';
+  geoToggle.setAttribute('aria-pressed', on);
+  canvas.classList.toggle('geo-mode', on);
+  regionLegend.hidden = !on;
+});
+const earnToggle=document.getElementById('earnToggle');
+earnToggle.addEventListener('click',()=>{
+  const on = earnToggle.getAttribute('aria-pressed')!=='true';
+  earnToggle.setAttribute('aria-pressed', on);
+  canvas.classList.toggle('earn-mode', on);
+});
+// search
+const searchEl=document.getElementById('search');
+searchEl.addEventListener('input',()=>{
+  const q=searchEl.value.trim().toLowerCase();
+  Object.entries(nodeEls).forEach(([id,e])=>{
+    const n=byId[id];
+    const hit = !q || n.nm.toLowerCase().includes(q) || (n.tk||'').toLowerCase().includes(q) || (n.sub||'').toLowerCase().includes(q);
+    e.classList.toggle('search-hide', !hit);
+  });
+});
+
+const FOCUS = ['tsmc','avgo','amd','micron','meta'];
+const tabsEl = document.getElementById('tabs');
+const allTab = document.createElement('button');
+allTab.className='tab all'; allTab.textContent='Overview'; allTab.dataset.id='all'; allTab.setAttribute('aria-pressed','true');
+allTab.addEventListener('click',()=>select(null)); tabsEl.appendChild(allTab);
+FOCUS.forEach(id=>{
+  const n=byId[id]; const b=document.createElement('button');
+  b.className='tab'; b.dataset.id=id;
+  b.innerHTML = `${n.nm}<span class="tk">${n.tk}</span>`;
+  b.addEventListener('click',()=>select(id)); tabsEl.appendChild(b);
+});
+
+const SVGNS='http://www.w3.org/2000/svg';
+const labelG=document.createElementNS(SVGNS,'g'); labelG.setAttribute('class','plabels');
+const pctLabels=[];
+const wireEls = EDGES.map(([a,b,src,bidi])=>{
+  const p=document.createElementNS(SVGNS,'path');
+  p.setAttribute('class',`wire src-${src}`);
+  p.dataset.a=a; p.dataset.b=b;
+  const meta=EDGEMETA[`${a}>${b}`]||{};
+  p.style.setProperty('--w', WMAP[meta.w||1]);
+  p.setAttribute('marker-end','url(#ah)');
+  if(bidi) p.setAttribute('marker-start','url(#ah)');
+  wires.appendChild(p);
+  if(meta.pct){
+    const t=document.createElementNS(SVGNS,'text');
+    t.setAttribute('class','plabel'); t.setAttribute('text-anchor','middle'); t.textContent=meta.pct;
+    labelG.appendChild(t); pctLabels.push({t,path:p});
+  }
+  return p;
+});
+wires.appendChild(labelG);
+
+// propagation adjacency (supplier->customer = fwd; customer->supplier = bwd)
+const fwd={}, bwd={};
+EDGES.forEach(([a,b],i)=>{
+  const w=(EDGEMETA[`${a}>${b}`]||{}).w||1, path=wireEls[i];
+  (fwd[a]=fwd[a]||[]).push({to:b,w,path});
+  (bwd[b]=bwd[b]||[]).push({to:a,w,path});
+});
+const tf = w => Math.min(1, WMAP[w]/2.9);
+function draw(){
+  const cr = canvas.getBoundingClientRect();
+  if(!cr.width) return;
+  wires.setAttribute('viewBox',`0 0 ${cr.width} ${cr.height}`);
+  wireEls.forEach(p=>{
+    const A=nodeEls[p.dataset.a].getBoundingClientRect(), B=nodeEls[p.dataset.b].getBoundingClientRect();
+    const x1=A.right-cr.left, y1=A.top-cr.top+A.height/2;
+    const x2=B.left-cr.left,  y2=B.top-cr.top+B.height/2;
+    const mx=(x1+x2)/2;
+    p.setAttribute('d',`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
+  });
+  pctLabels.forEach(({t,path})=>{
+    const A=nodeEls[path.dataset.a].getBoundingClientRect(), B=nodeEls[path.dataset.b].getBoundingClientRect();
+    const x1=A.right-cr.left, y1=A.top-cr.top+A.height/2;
+    const x2=B.left-cr.left,  y2=B.top-cr.top+B.height/2;
+    t.setAttribute('x',(x1+x2)/2); t.setAttribute('y',(y1+y2)/2 - 3);
+  });
+  if(typeof positionCompeteArcs==='function') positionCompeteArcs();
+}
+
+let showReported=false, current=null;
+document.querySelectorAll('#srcToggle button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    showReported = btn.dataset.mode==='all';
+    document.querySelectorAll('#srcToggle button').forEach(b=>b.setAttribute('aria-pressed', b===btn));
+    canvas.classList.toggle('hide-reported', !showReported);
+    if(current) select(current); else markOrphans();
+  });
+});
+
+const chkToggle=document.getElementById('chkToggle');
+chkToggle.addEventListener('click',()=>{
+  const on = chkToggle.getAttribute('aria-pressed')!=='true';
+  chkToggle.setAttribute('aria-pressed', on);
+  canvas.classList.toggle('risk-mode', on);
+});
+
+// ---- shock-propagation ----
+let shockMode=false, shockDir='down';
+const shockNodes=new Set(), shockPaths=new Set();
+const shockToggle=document.getElementById('shockToggle');
+const shockDirEl=document.getElementById('shockDir');
+shockToggle.addEventListener('click',()=>{
+  shockMode = shockToggle.getAttribute('aria-pressed')!=='true';
+  shockToggle.setAttribute('aria-pressed', shockMode);
+  shockDirEl.hidden = !shockMode;
+  canvas.classList.toggle('shock-arm', shockMode);
+  if(shockMode && corrMode){ corrMode=false; corrToggle.setAttribute('aria-pressed','false'); canvas.classList.remove('corr-mode'); clearCorr(); }
+  if(shockMode && competeMode){ competeMode=false; competeToggle.setAttribute('aria-pressed','false'); canvas.classList.remove('compete-mode'); clearCompete(); }
+  if(shockMode){ current=null; document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed','false'));
+    canvas.classList.remove('filtered'); wireEls.forEach(p=>p.classList.remove('on'));
+    Object.values(nodeEls).forEach(e=>e.classList.remove('on','sel','orphan')); updateLabels(); renderShockIntro(); }
+  else { clearShock(); renderOverview(); markOrphans(); }
+});
+shockDirEl.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+  shockDir=b.dataset.dir;
+  shockDirEl.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed', x===b));
+}));
+function onNodeClick(id){ if(competeMode) runCompete(id); else if(corrMode) runCorr(id); else if(shockMode) runShock(id); else select(id); }
+function clearShock(){
+  canvas.classList.remove('shock-mode');
+  shockNodes.forEach(id=>{ const e=nodeEls[id]; e.classList.remove('hit','epi'); e.style.boxShadow=''; e.style.borderColor=''; });
+  shockPaths.forEach(p=>p.classList.remove('shockwave'));
+  shockNodes.clear(); shockPaths.clear();
+}
+function runShock(srcId){
+  clearShock();
+  canvas.classList.remove('filtered'); canvas.classList.add('shock-mode');
+  const adj = shockDir==='down' ? fwd : bwd;
+  const sev={[srcId]:1}, hop={[srcId]:0}, order=[srcId], usedPath={}, q=[srcId];
+  while(q.length){
+    const cur=q.shift();
+    (adj[cur]||[]).forEach(({to,w,path})=>{
+      if(!edgeVisible(path)) return;
+      const val = sev[cur]*0.7*tf(w);
+      if(val<0.06) return;
+      if(val > (sev[to]||0)){
+        sev[to]=val; hop[to]=(hop[cur]||0)+1; usedPath[to]=path;
+        if(!order.includes(to)) order.push(to);
+        q.push(to);
+      }
+    });
+  }
+  const maxHop=order.reduce((m,id)=>Math.max(m,hop[id]||0),0);
+  order.forEach(id=>{
+    shockNodes.add(id);
+    setTimeout(()=>{
+      const e=nodeEls[id], s=sev[id];
+      if(id===srcId){ e.classList.add('epi'); e.style.boxShadow='0 0 0 2.5px #d0332b, 0 0 22px 4px rgba(208,51,43,.55)'; }
+      else {
+        e.classList.add('hit');
+        const c=`hsl(${Math.round(4+(1-s)*36)}, 80%, 52%)`;
+        e.style.boxShadow=`0 0 0 2px ${c}, 0 0 15px 1px ${c}88`; e.style.borderColor=c;
+        const p=usedPath[id]; if(p){ shockPaths.add(p); p.classList.add('shockwave'); }
+      }
+    }, (hop[id]||0)*230);
+  });
+  renderShockPanel(srcId, sev, hop, order, maxHop);
+}
+function renderShockIntro(){
+  panel.innerHTML=`<div class="p-tk">⚡ SHOCK TEST</div>
+    <h2>Simulate a disruption</h2>
+    <p class="role">Choose a direction, then click any company to send a shock rippling through the chain.
+      <b>Supply cut ▼</b> — this company can't ship, so its <em>customers</em> downstream get hit.
+      <b>Demand cut ▲</b> — this company stops buying, so its <em>suppliers</em> upstream get hit.
+      Severity fades with each hop and with how material each link is (thicker line = stronger transmission).
+      Only links visible in the current view transmit — turn on <b>“+ Reported”</b> for the full cascade.</p>
+    <p class="hint">Illustrative propagation model, not a forecast.</p>`;
+}
+function renderShockPanel(src, sev, hop, order, maxHop){
+  const n=byId[src];
+  const affected=order.filter(id=>id!==src).sort((a,b)=>sev[b]-sev[a]);
+  const dirLabel = shockDir==='down' ? 'supply cut → downstream customers' : 'demand cut → upstream suppliers';
+  const rows = affected.slice(0,14).map(id=>{
+    const s=Math.round(sev[id]*100), c=`hsl(${Math.round(4+(1-sev[id])*36)}, 80%, 50%)`;
+    return `<div class="shrow"><span class="shname">${byId[id].nm}</span><span class="shbar"><i style="width:${s}%;background:${c}"></i></span><span class="shpct">${s}%</span><span class="shhop">${hop[id]} hop</span></div>`;
+  }).join('');
+  panel.innerHTML=`<div class="p-tk">⚡ SHOCK · ${n.tk||n.nm}</div>
+    <h2>${n.nm} — ${dirLabel}</h2>
+    <p class="role"><b>${affected.length}</b> ${affected.length===1?'company':'companies'} affected across up to <b>${maxHop}</b> hop${maxHop===1?'':'s'},
+      ranked by modeled severity (share of the original shock reaching each). Weighted by relationship materiality — illustrative, not a forecast.</p>
+    <div class="shlist">${rows||'<span class="hint">No links in this direction within the current view — try the other direction or enable “+ Reported”.</span>'}</div>`;
+}
+
+// ---- co-movement (modeled correlation) ----
+let corrMode=false;
+const corrNodes=new Set();
+const corrToggle=document.getElementById('corrToggle');
+corrToggle.addEventListener('click',()=>{
+  corrMode = corrToggle.getAttribute('aria-pressed')!=='true';
+  corrToggle.setAttribute('aria-pressed', corrMode);
+  if(corrMode){
+    if(shockMode){ shockMode=false; shockToggle.setAttribute('aria-pressed','false'); shockDirEl.hidden=true; canvas.classList.remove('shock-arm'); clearShock(); }
+    if(competeMode){ competeMode=false; competeToggle.setAttribute('aria-pressed','false'); canvas.classList.remove('compete-mode'); clearCompete(); }
+    canvas.classList.add('corr-mode'); canvas.classList.remove('filtered');
+    current=null; document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed','false'));
+    wireEls.forEach(p=>p.classList.remove('on')); Object.values(nodeEls).forEach(e=>e.classList.remove('on','sel','orphan')); updateLabels();
+    clearCorr(); renderCorrIntro();
+  } else { canvas.classList.remove('corr-mode'); clearCorr(); renderOverview(); markOrphans(); }
+});
+function clearCorr(){
+  corrNodes.forEach(nid=>{ const e=nodeEls[nid]; e.classList.remove('corr-src','corr-na');
+    e.style.boxShadow=''; e.style.borderColor=''; e.style.opacity=''; e.removeAttribute('title'); });
+  corrNodes.clear();
+}
+function runCorr(id){
+  clearCorr(); current=id;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed', t.dataset.id===id));
+  Object.entries(nodeEls).forEach(([nid,e])=>{
+    corrNodes.add(nid);
+    if(nid===id){ e.classList.add('corr-src'); e.style.boxShadow='0 0 0 2.5px var(--flow)'; e.style.opacity='1'; return; }
+    const c=corr(id,nid);
+    if(c==null){ e.classList.add('corr-na'); e.style.opacity='.26'; }
+    else { const i=Math.max(0,Math.min(1,(c-0.2)/0.7)), col=corrColor(c);
+      e.style.boxShadow=`0 0 0 2px ${col}`; e.style.borderColor=col; e.style.opacity=(0.4+0.6*i).toFixed(2); e.title=`modeled corr ≈ ${c.toFixed(2)}`; }
+  });
+  renderCorrPanel(id);
+}
+function renderCorrIntro(){
+  panel.innerHTML=`<div class="p-tk">📈 CO-MOVEMENT</div>
+    <h2>How these stocks trade together</h2>
+    <p class="role">Click any company — a box or a tab — to shade every other name by how tightly its stock tends to move with the one you picked. <b>Deeper teal = higher correlation.</b> This is the supply chain <em>explaining</em> the correlation: pick Meta and its chip suppliers light up, not the ad-tech peers.</p>
+    <div class="why"><b>How these numbers are made</b>Correlations are <b>modeled from sector-factor exposure</b> (semis, memory, AI-compute, mega-cap, equipment, hardware, cloud) — a structural estimate, <em>not</em> computed from live prices. Private names (ByteDance, OpenAI) have no market data. I can replace these with <b>real trailing correlations from your own price data</b> on request.</p>`;
+}
+function renderCorrPanel(id){
+  const n=byId[id];
+  if(!FACTORS[id]){ panel.innerHTML=`<div class="p-tk">📈 CO-MOVEMENT · ${n.nm}</div><h2>${n.nm}</h2>
+    <p class="role"><b>${n.nm} is privately held</b> — there's no listed stock, so no co-movement to model. Pick a public company instead.</p>`; return; }
+  const scored=Object.keys(FACTORS).filter(k=>k!==id && FACTORS[k]).map(k=>[k,corr(id,k)]).sort((a,b)=>b[1]-a[1]);
+  const rows=scored.slice(0,12).map(([k,c])=>{
+    const pct=Math.round(c*100), col=corrColor(c);
+    return `<div class="shrow corr3"><span class="shname">${byId[k].nm}</span><span class="shbar"><i style="width:${pct}%;background:${col}"></i></span><span class="shpct">${c.toFixed(2)}</span></div>`;
+  }).join('');
+  const low=scored[scored.length-1];
+  panel.innerHTML=`<div class="p-tk">📈 CO-MOVEMENT · ${n.tk||n.nm}</div>
+    <h2>Trades most with ${n.nm}</h2>
+    <p class="role">Ranked by <b>modeled</b> correlation (0–1) from sector-factor exposure — a structural estimate, not realized returns. Least correlated in the set: <b>${byId[low[0]].nm}</b> (${low[1].toFixed(2)}).</p>
+    <div class="shlist">${rows}</div>`;
+}
+
+// ---- competitors (rivalry lens) ----
+let competeMode=false, competeSel=null;
+const competePaths=[];
+const competeG=document.createElementNS(SVGNS,'g'); competeG.setAttribute('class','competelines'); wires.appendChild(competeG);
+const competeToggle=document.getElementById('competeToggle');
+competeToggle.addEventListener('click',()=>{
+  competeMode = competeToggle.getAttribute('aria-pressed')!=='true';
+  competeToggle.setAttribute('aria-pressed', competeMode);
+  if(competeMode){
+    if(shockMode){ shockMode=false; shockToggle.setAttribute('aria-pressed','false'); shockDirEl.hidden=true; canvas.classList.remove('shock-arm'); clearShock(); }
+    if(corrMode){ corrMode=false; corrToggle.setAttribute('aria-pressed','false'); canvas.classList.remove('corr-mode'); clearCorr(); }
+    canvas.classList.add('compete-mode'); canvas.classList.remove('filtered');
+    current=null; document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed','false'));
+    wireEls.forEach(p=>p.classList.remove('on')); Object.values(nodeEls).forEach(e=>e.classList.remove('on','sel','orphan')); updateLabels();
+    clearCompete(); renderCompeteIntro();
+  } else { canvas.classList.remove('compete-mode'); clearCompete(); renderOverview(); markOrphans(); }
+});
+function clearCompete(){
+  competePaths.forEach(({path})=>path.remove()); competePaths.length=0; competeSel=null;
+  Object.values(nodeEls).forEach(e=>e.classList.remove('compete-src','compete-rival'));
+}
+function positionCompeteArcs(){
+  if(!competeSel) return;
+  const cr=canvas.getBoundingClientRect();
+  const S=nodeEls[competeSel].getBoundingClientRect();
+  const sx=S.left-cr.left, sy=S.top-cr.top+S.height/2;
+  competePaths.forEach(({path,rid})=>{
+    const R=nodeEls[rid].getBoundingClientRect();
+    const rx=R.left-cr.left, ry=R.top-cr.top+R.height/2;
+    const bx=Math.min(sx,rx)-46;
+    path.setAttribute('d',`M${sx},${sy} C${bx},${sy} ${bx},${ry} ${rx},${ry}`);
+  });
+}
+function runCompete(id){
+  clearCompete(); competeSel=id;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed', t.dataset.id===id));
+  const rivals=[...(COMPETES[id]||[])];
+  Object.entries(nodeEls).forEach(([nid,e])=>{
+    e.classList.toggle('compete-src', nid===id);
+    e.classList.toggle('compete-rival', rivals.includes(nid));
+  });
+  rivals.forEach(rid=>{ const p=document.createElementNS(SVGNS,'path'); p.setAttribute('class','competeline'); competeG.appendChild(p); competePaths.push({path:p,rid}); });
+  positionCompeteArcs();
+  renderCompetePanel(id, rivals);
+}
+function renderCompeteIntro(){
+  panel.innerHTML=`<div class="p-tk">⚔ COMPETITORS</div>
+    <h2>Who competes with whom — and why rivals move on each other’s news</h2>
+    <p class="role">Click any company to light up its <b>direct competitors</b> (red) for the same customers. Your boss’s question — <em>why does a bad AMD report push Nvidia up?</em> — is exactly this: AMD and Nvidia fight for the same AI-GPU budget, so a weak AMD print signals Nvidia is <b>winning share</b>, and its stock can rise even though the two usually move together on sector news.</p>
+    <div class="why"><b>Supplier vs. competitor</b>The arrows in the normal view are <b>supplier → customer</b> flows. This lens instead shows <b>rivalry</b> — same-market competitors, drawn as red links. Two very different relationships; the map now shows both.</div>`;
+}
+function renderCompetePanel(id, rivals){
+  const n=byId[id];
+  const note = COMPETE_NOTE[id] || 'These are its direct rivals for the same customers. On sector-wide news they tend to move together; on market-share news they can move <b>inversely</b> — one company’s loss is often another’s gain.';
+  const chipsHtml = rivals.length ? rivals.map(rid=>`<span class="chip"><b>${byId[rid].nm}</b>${byId[rid].sub?`<small>${byId[rid].sub}</small>`:''}</span>`).join('') : '<span class="hint">No direct on-map competitor — it occupies a near-monopoly position.</span>';
+  panel.innerHTML=`<div class="p-tk">⚔ COMPETITORS · ${n.tk||n.nm}</div>
+    <h2>${n.nm} — direct rivals</h2>
+    <p class="role">${note}</p>
+    <div class="chips">${chipsHtml}</div>
+    <div class="why"><b>Two forces at once</b>The same pair can be <b>correlated</b> (rise together on AI-demand news — see 📈 Co-movement) <em>and</em> <b>competitors</b> (diverge on market-share news). That's why a weak report from one can send a rival <b>up</b>.</div>`;
+}
+
+function edgeVisible(p){ return showReported || !p.classList.contains('src-reported'); }
+function updateLabels(){ pctLabels.forEach(({t,path})=>{ t.style.opacity = (!current || path.classList.contains('on')) ? 1 : 0.1; }); }
+function markOrphans(){
+  const live=new Set();
+  wireEls.forEach(p=>{ if(edgeVisible(p)){ live.add(p.dataset.a); live.add(p.dataset.b); } });
+  Object.entries(nodeEls).forEach(([id,e])=> e.classList.toggle('orphan', !live.has(id)));
+}
+
+function select(id){
+  if(competeMode){ if(id){ runCompete(id); return; } clearCompete(); document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed', t.dataset.id==='all')); renderCompeteIntro(); return; }
+  if(corrMode){ if(id){ runCorr(id); return; } clearCorr(); document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed', t.dataset.id==='all')); renderCorrIntro(); return; }
+  if(shockMode){ shockMode=false; shockToggle.setAttribute('aria-pressed','false'); shockDirEl.hidden=true; canvas.classList.remove('shock-arm'); }
+  clearShock();
+  current=id;
+  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-pressed', t.dataset.id===(id||'all')));
+  Object.values(nodeEls).forEach(e=>e.classList.remove('orphan'));
+  if(!id){
+    canvas.classList.remove('filtered');
+    wireEls.forEach(p=>p.classList.remove('on'));
+    Object.values(nodeEls).forEach(e=>e.classList.remove('on','sel'));
+    markOrphans(); updateLabels(); renderOverview(); return;
+  }
+  canvas.classList.add('filtered');
+  const nb=new Set([id]);
+  wireEls.forEach(p=>{
+    const hit = (p.dataset.a===id || p.dataset.b===id) && edgeVisible(p);
+    p.classList.toggle('on',hit);
+    if(hit){ nb.add(p.dataset.a); nb.add(p.dataset.b); }
+  });
+  Object.entries(nodeEls).forEach(([nid,e])=>{
+    e.classList.toggle('on', nb.has(nid));
+    e.classList.toggle('sel', nid===id);
+  });
+  updateLabels(); renderDetail(id);
+}
+
+const panel=document.getElementById('panel');
+function chips(arr){ return arr.map(([b,s,src,url])=>{
+  let tag='';
+  if(src && src!=='reported'){
+    const cls = src==='filing' ? 'filed' : 'official';
+    const lbl = src==='filing' ? 'filing' : 'official';
+    tag = url ? `<a class="tag ${cls}" href="${url}" target="_blank" rel="noopener">${lbl} ↗</a>`
+              : `<em class="tag ${cls}">${lbl}</em>`;
+  }
+  return `<span class="chip"><b>${b}</b>${s?`<small>${s}</small>`:''}${tag}</span>`;
+}).join(''); }
+function earnNote(id){
+  const e=EARN[id]; if(!e) return '';
+  const lvl=['','Low','Medium','High'][e[0]];
+  const rival=[...(COMPETES[id]||[])][0];
+  const cmp = rival ? ` <br><b>Compare vs:</b> ${byId[rival].nm} — read their prints side by side.` : '';
+  return `<div class="earnnote"><b>🔔 Earnings impact · ${lvl}</b>${e[1]}${cmp} <span class="ehint">Latest-quarter figures: connect data.</span></div>`;
+}
+function renderDetail(id){
+  const n=byId[id], d=DETAIL[id];
+  if(!d){ panel.innerHTML=`<div class="p-tk">${n.tk||''}${n.rg?` · ${REGION[n.rg][0]}`:''}</div><h2>${n.nm}${n.share?`<span class="mkt">${n.share}</span>`:''}</h2>
+    <p class="role">${n.sub}. Highlighted above are its direct links in this map.</p>
+    ${RISK[id]?`<div class="risknote"><b>⚠ Supply chokepoint</b>${RISK[id][1]}</div>`:''}
+    ${earnNote(id)}
+    <p class="hint">Pick one of the five focus companies (★) for the full sourced buyer / supplier breakdown.</p>`; return; }
+  panel.innerHTML=`
+    <div class="p-tk">${n.tk}${n.rg?` · ${REGION[n.rg][0]}`:''}</div>
+    <h2>${n.nm}${d.mkt?`<span class="mkt">${d.mkt}</span>`:''}</h2>
+    <p class="role">${d.role}</p>
+    <div class="stat"><span class="lbl">${d.stat[2]?`<a href="${d.stat[2]}" target="_blank" rel="noopener">${d.stat[0]} ↗</a>`:d.stat[0]}</span><span>${d.stat[1]}</span></div>
+    <div class="cols">
+      <div><h3><span class="ar">←</span> Buys from &nbsp;·&nbsp; upstream</h3><div class="chips">${chips(d.buy)}</div></div>
+      <div><h3>Sells to &nbsp;·&nbsp; downstream <span class="ar">→</span></h3><div class="chips">${chips(d.sell)}</div></div>
+    </div>
+    ${d.reported?`<p class="reported-line"><b>Also reported (not company-confirmed):</b> ${d.reported}</p>`:''}
+    ${RISK[id]?`<div class="risknote"><b>⚠ Supply chokepoint</b>${RISK[id][1]}</div>`:''}
+    ${earnNote(id)}
+    <div class="why"><b>Why it matters</b>${d.why}</div>`;
+}
+function renderOverview(){
+  panel.innerHTML=`
+    <div class="p-tk">THE THESIS</div>
+    <h2>One vertical slice of the AI buildout</h2>
+    <p class="role">Read left to right, the five focus companies (★) form a near-complete path from raw silicon to
+      end demand: <b>TSMC</b> fabricates → <b>AMD · Broadcom · Micron</b> supply chips and memory →
+      <b>Meta</b> assembles it into AI infrastructure. Because they stack, a demand change at the top (Meta capex)
+      or a supply constraint at the bottom (TSMC packaging, Micron HBM) propagates through all of them.</p>
+    <div class="why"><b>How to use this</b>Click any company to light up its suppliers and customers, each tagged with a
+      linked source. Default view shows only relationships confirmed in an SEC filing or an official company release;
+      switch to <b>“+ Reported”</b> to reveal well-known but unconfirmed ties (they appear as faint dotted lines).
+      <b>⇄</b> marks a two-way relationship — e.g. Nvidia both supplies GPUs to CoreWeave and buys cloud capacity back.</div>`;
+}
+
+renderOverview();
+requestAnimationFrame(()=>{ draw(); markOrphans(); });
+window.addEventListener('resize', draw);
+window.addEventListener('load', ()=>{ draw(); markOrphans(); });
+new ResizeObserver(draw).observe(canvas);
+</script>
